@@ -385,8 +385,11 @@ const MOTIVATE=[
 
 /* ---------- STORAGE ---------- */
 const KEY="forge.v1", METAKEY="forge.meta";
-let DB=null, saveTimer=null, storageOK=true;
+let DB=null, saveTimer=null, storageOK=true, storageWarned=false;
+function lsAvailable(){try{const k="__forge_probe__";localStorage.setItem(k,"1");localStorage.removeItem(k);return true;}catch(e){return false;}}
+function pruneSnapshots(keepLatest){try{const keys=Object.keys(localStorage).filter(k=>k.indexOf(KEY+".bak.")===0||k.indexOf(KEY+".corrupt.")===0).sort();const drop=keepLatest?keys.slice(0,-1):keys;drop.forEach(k=>{try{localStorage.removeItem(k);}catch(_){}});return drop.length;}catch(e){return 0;}}
 function load(){
+ if(!lsAvailable()){storageOK=false;DB=defaultDB();warnStorage();return;}
  try{
   const raw=localStorage.getItem(KEY);
   if(!raw){DB=defaultDB();persist(true);return;}
@@ -432,18 +435,28 @@ function migrate(d){
  d.bodyLog=Array.isArray(d.bodyLog)?d.bodyLog:[];
  return d;
 }
+function writeNow(){
+ localStorage.setItem(KEY,JSON.stringify(DB));
+ localStorage.setItem(METAKEY,JSON.stringify({schemaVersion:DB.schemaVersion,lastSaved:DB.meta.updatedAt}));
+}
 function persist(skipDot){
  if(!DB)return;
  DB.meta.updatedAt=new Date().toISOString();
  try{
-  localStorage.setItem(KEY,JSON.stringify(DB));
-  localStorage.setItem(METAKEY,JSON.stringify({schemaVersion:DB.schemaVersion,lastSaved:DB.meta.updatedAt}));
-  storageOK=true;
-  if(!skipDot)flashSave();
+  writeNow();storageOK=true;if(!skipDot)flashSave();
  }catch(e){
-  storageOK=false;
-  toast("Storage full / unavailable — export a backup now.",null,null,4000);
+  // likely a quota error: free old snapshot/backup keys and retry once
+  if(pruneSnapshots(false)>0){try{writeNow();storageOK=true;if(!skipDot)flashSave();return;}catch(_){}}
+  storageOK=false;warnStorage();
  }
+}
+function warnStorage(){
+ const d=$("#saveDot");if(d){d.style.background="var(--warn)";d.title="Not saving — storage blocked";}
+ if(storageWarned)return;storageWarned=true;
+ const vi=!DB||!DB.settings||DB.settings.lang==="vi";
+ showBanner(vi
+  ?"Trình duyệt đang CHẶN lưu trữ (thường do tab Ẩn danh/Riêng tư hoặc cài đặt “Block All Cookies”). App vẫn chạy trong phiên này nhưng sẽ KHÔNG tự lưu. Cách sửa: dùng tab thường (không ẩn danh), TẮT “Block All Cookies” trong Cài đặt Safari, hoặc Thêm vào Màn hình chính. Tạm thời: tab Sứ mệnh → Xuất sao lưu (JSON)."
+  :"Your browser is BLOCKING storage (usually Private/Incognito mode or a “Block All Cookies” setting). The app still works this session but will NOT auto-save. Fix: use a normal (non-private) tab, turn OFF “Block All Cookies” in Safari settings, or Add to Home Screen. For now: Mission tab → Export backup (JSON).",true);
 }
 function save(){ if(saveTimer)clearTimeout(saveTimer); saveTimer=setTimeout(persist,150); }
 function flashSave(){const d=$("#saveDot");if(!d)return;d.classList.add("flash");setTimeout(()=>d.classList.remove("flash"),400);}
@@ -1325,7 +1338,7 @@ function resetAll(){if(confirm(t("confirm_reset"))){try{localStorage.setItem(KEY
 /* ---------- SHEETS / TOASTS / FX ---------- */
 function openSheet(html){$("#sheetBody").innerHTML=html;$("#scrim").classList.add("show");$("#sheet").classList.add("show");}
 function closeSheet(){$("#scrim").classList.remove("show");$("#sheet").classList.remove("show");S.sheet=null;}
-function showBanner(msg){const b=document.createElement("div");b.className="banner";b.textContent=msg;document.body.insertBefore(b,$("#main"));setTimeout(()=>b.remove(),12000);}
+function showBanner(msg,sticky){const b=document.createElement("div");b.className="banner";b.innerHTML='<span>'+esc(msg)+'</span> <b class="bx" style="cursor:pointer;margin-left:8px;float:right">✕</b>';b.querySelector(".bx").addEventListener("click",function(){b.remove();});document.body.insertBefore(b,$("#main"));if(!sticky)setTimeout(function(){if(b.parentNode)b.remove();},12000);}
 let toastT=null;
 function toast(msg,actionLabel,actionFn,dur){
  const wrap=$("#toasts");const el=document.createElement("div");el.className="toast";
