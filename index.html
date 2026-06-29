@@ -528,6 +528,12 @@ function setWorkout(dateStr,wk){
  ids.forEach(id=>{const def=DB.program.exercises[id];if(!def)return;const ex=keep.find(k=>k.exId===id);out.push(ex||makeEntry(id,def));});
  keep.forEach(k=>{if(ids.indexOf(k.exId)<0)out.push(k);});
  s.entries=out;
+ // re-anchor the rotation when setting TODAY's workout, so the following days auto-suggest from here
+ if(wk!=='rest'&&dateStr===todayISO()){
+  const ord=DB.program.cycle.order,i=ord.indexOf(wk);
+  if(i>0)DB.program.cycle.order=ord.slice(i).concat(ord.slice(0,i));
+  DB.program.cycle.startDate=dateStr;
+ }
  save();S.openEx=null;render();
 }
 function shiftDate(n){const d=parseLocal(S.selDate);d.setDate(d.getDate()+n);S.selDate=d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());S.openEx=null;render();}
