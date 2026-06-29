@@ -612,6 +612,7 @@ function prFor(exId,excludeTs){
 
 /* ---------- UI STATE ---------- */
 const S={tab:"today",date:todayISO(),selDate:todayISO(),openEx:null,statsRange:"12w",statsExId:null,rest:{endsAt:0,dur:0,running:false},sheet:null,editing:null};
+let appToday=todayISO();
 
 /* ---------- RENDER ROOT ---------- */
 function render(){
@@ -1423,14 +1424,29 @@ document.addEventListener("pointercancel",clearHold);
 document.addEventListener("pointerleave",clearHold);
 
 /* ---------- INIT ---------- */
+function syncToday(){
+ // keep the displayed date in sync with the real device clock; advance the rotation at midnight / on reopen
+ try{
+  const real=todayISO();
+  if(real!==appToday){
+   const wasOnToday=(S.selDate===appToday);
+   appToday=real;
+   if(wasOnToday)S.selDate=real;
+   render();
+  }else if(S.tab==="today"){renderHeader();}
+ }catch(_){}
+}
 function boot(){
  try{
   load();
   S.tab=DB.meta.lastTab||"today";
-  S.selDate=todayISO();S.date=todayISO();
+  S.selDate=todayISO();S.date=todayISO();appToday=todayISO();
   S.statsExId=DB.settings.lastStatsExId||null;
   render();
-  setInterval(()=>{if(S.tab==="today")renderHeader();},30000); // refresh road rail / day if left open
+  setInterval(syncToday,30000); // real-time date: refresh road rail + roll over at midnight
+  document.addEventListener("visibilitychange",function(){if(!document.hidden)syncToday();});
+  window.addEventListener("focus",syncToday);
+  window.addEventListener("pageshow",syncToday);
  }catch(err){
   document.getElementById("main").innerHTML='<div class="banner">App error: '+esc(err&&err.message)+'. Try Mission › Reset, or reload.</div>';
   console.error(err);
