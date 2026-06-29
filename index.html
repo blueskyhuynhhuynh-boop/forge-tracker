@@ -361,7 +361,7 @@ function defaultDB(){
     goal:{targetWeightLb:174,targetBfPct:4.5,showDate:"2029-06-01"},
     phase:{id:"p1",name:{en:"Lean Recomp",vi:"Tái cấu trúc nạc"},index:1,start:"2026-04-01",end:"2026-10-31"}},
   program:{
-    cycle:{onDays:3,offDays:1,startDate:now.slice(0,10),order:["push","pull","legs","shoulder"]},
+    cycle:{onDays:3,offDays:1,startDate:todayISO(),order:["push","pull","legs","shoulder"]},
     workouts:{
       push:{title:{en:"Push",vi:"Đẩy (Ngực · Vai · Tay sau)"},muscles:["chest","shoulders","triceps"],exerciseIds:[]},
       pull:{title:{en:"Pull",vi:"Kéo (Lưng · Tay trước)"},muscles:["back","biceps"],exerciseIds:[]},
