@@ -1,0 +1,21 @@
+{
+  "name": "FORGE — Road to Stage 2029",
+  "short_name": "FORGE",
+  "description": "Offline workout tracker: sets, reps, rest periods and strength by muscle group.",
+  "start_url": "./",
+  "scope": "./",
+  "id": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "fullscreen"],
+  "orientation": "portrait",
+  "background_color": "#0A0B0D",
+  "theme_color": "#0A0B0D",
+  "lang": "vi",
+  "dir": "ltr",
+  "categories": ["health", "fitness", "sports"],
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

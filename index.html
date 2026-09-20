@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0A0B0D">
 <title>FORGE — Road to Stage 2029</title>
+<!-- PWA: installable to the iPhone/Android home screen -->
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FORGE">
+<meta name="description" content="Offline workout tracker: sets, reps, rest periods and strength by muscle group.">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
 <style>
 :root{
   --bg-0:#0A0B0D; --bg-1:#121417; --bg-2:#181B20; --bg-3:#1F232A;
@@ -259,6 +268,46 @@ nav.tabbar button.on{background:var(--gold-wash)}
 @media (prefers-reduced-motion:reduce){
   *{animation-duration:.001ms!important;transition-duration:.001ms!important}
 }
+
+/* ---------- REST PERIODS ---------- */
+.setrow .rest{font-size:.6875rem;color:var(--tx-3);font-weight:600;white-space:nowrap}
+.setrow .rest.long{color:var(--warn)}
+.setrow .rest.vlong{color:var(--tx-4)}
+.sincelast{display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--mono);font-size:.75rem;color:var(--tx-3);padding:2px 0 8px;font-weight:600}
+.sincelast b{color:var(--tx-2);font-weight:700}
+.sincelast.ready b{color:var(--up)}
+
+/* ---------- MUSCLE DETAIL ---------- */
+.mtag[data-act]{cursor:pointer}
+.mtag[data-act]:active{filter:brightness(1.35)}
+.mdet-head{display:flex;align-items:center;gap:var(--s3);margin-bottom:var(--s2)}
+.mdet-dot{width:12px;height:12px;border-radius:50%;flex:none}
+.mdet-sub{color:var(--tx-3);font-size:.8125rem;margin-bottom:var(--s4)}
+.mdet-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s2);margin-bottom:var(--s4)}
+.mdet-k{background:var(--bg-2);border-radius:var(--r-md);padding:10px var(--s3);text-align:center}
+.mdet-k .v{font-family:var(--mono);font-size:1.0625rem;font-weight:800}
+.mdet-k .l{font-size:.625rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+.mdet-ex{border-top:1px solid var(--line-soft);padding:10px 0}
+.mdet-ex .nm{font-weight:700;font-size:.9375rem;display:flex;justify-content:space-between;gap:var(--s3);align-items:baseline}
+.mdet-ex .nm .best{font-family:var(--mono);font-size:.8125rem;color:var(--gold-bright);font-weight:700;white-space:nowrap}
+.mdet-sets{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.mdet-set{font-family:var(--mono);font-size:.75rem;background:var(--bg-3);border-radius:var(--r-sm);padding:3px 8px;color:var(--tx-2)}
+.mdet-set.pr{background:rgba(255,212,102,.15);color:var(--pr);font-weight:700}
+.mdet-hist{display:flex;justify-content:space-between;gap:var(--s3);padding:7px 0;border-bottom:1px solid var(--line-soft);font-size:.8125rem}
+.mdet-hist .d{color:var(--tx-2)}
+.mdet-hist .n{font-family:var(--mono);color:var(--tx-3);font-size:.75rem}
+.mdet-empty{color:var(--tx-3);font-size:.875rem;padding:var(--s4) 0;text-align:center}
+.mdet-trend{font-family:var(--mono);font-size:.75rem;font-weight:700}
+.mdet-trend.up{color:var(--up)} .mdet-trend.down{color:var(--down)} .mdet-trend.flat{color:var(--tx-3)}
+svg [data-act]{cursor:pointer}
+
+/* ---------- INSTALL / BROWSER NOTICE ---------- */
+.notice{margin:var(--s3) var(--s4);padding:var(--s3) var(--s4);border-radius:var(--r-md);background:var(--gold-wash);border:1px solid rgba(232,176,75,.35);color:var(--tx-1);font-size:.8125rem;display:flex;gap:var(--s3);align-items:flex-start}
+.notice.warn{background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.35)}
+.notice .nb{flex:1;min-width:0}
+.notice b{color:var(--gold-bright)}
+.notice.warn b{color:var(--down)}
+.notice .nx{cursor:pointer;color:var(--tx-3);font-weight:800;padding:0 2px;flex:none}
 </style>
 </head>
 <body>
@@ -616,6 +665,118 @@ function prFor(exId,excludeTs){
  return {maxWeight:maxW,bestE1rm:bestE};
 }
 
+/* ---------- REST PERIODS (derived from each set's ts) ---------- */
+function tsMs(st){if(!st||!st.ts)return null;const t=Date.parse(st.ts);return isNaN(t)?null:t;}
+function restOf(sets,i){
+ // seconds rested before set i — needs a timestamp on both this set and the previous one
+ if(!sets||i<=0)return null;
+ const a=tsMs(sets[i-1]),b=tsMs(sets[i]);
+ if(a==null||b==null)return null;
+ const d=Math.round((b-a)/1000);
+ return (d<0||d>7200)?null:d; // >2h = session was paused, not a real rest
+}
+function fmtDur(sec){
+ if(sec==null||isNaN(sec))return"—";
+ sec=Math.max(0,Math.round(sec));
+ if(sec<60)return sec+"s";
+ return Math.floor(sec/60)+":"+pad(sec%60);
+}
+function restClass(sec){if(sec==null)return"";if(sec>=600)return" vlong";if(sec>=300)return" long";return"";}
+function avgRest(sets){
+ let tot=0,n=0;
+ for(let i=1;i<(sets||[]).length;i++){const r=restOf(sets,i);if(r!=null){tot+=r;n++;}}
+ return n?Math.round(tot/n):null;
+}
+function lastSetTs(){
+ // newest timestamp logged in the selected session (used for the live "since last set" readout)
+ const s=DB.sessions[S.selDate];if(!s)return null;
+ let mx=null;
+ s.entries.forEach(e=>(e.sets||[]).forEach(st=>{const t=tsMs(st);if(t!=null&&(mx==null||t>mx))mx=t;}));
+ return mx;
+}
+function renderSinceLast(){
+ const els=$$(".sincelast");if(!els.length)return;
+ const t0=lastSetTs();
+ let sec=null;
+ if(t0!=null){const d=Math.round((Date.now()-t0)/1000);if(d>=0&&d<=7200)sec=d;}
+ const vi=DB.settings.lang==="vi";
+ const target=DB.settings.restDefaultSec||90;
+ els.forEach(el=>{
+  if(sec==null){el.innerHTML="";el.classList.remove("ready");return;}
+  el.innerHTML=`⏱ ${esc(vi?"Đã nghỉ":"Rested")} <b>${esc(fmtDur(sec))}</b>${sec>=target?` ${esc(vi?"· sẵn sàng":"· ready")}`:``}`;
+  el.classList.toggle("ready",sec>=target);
+ });
+}
+
+/* ---------- MUSCLE ANALYSIS ---------- */
+function musEntries(s,m){return s.entries.filter(e=>e.muscle===m&&e.sets&&e.sets.length);}
+function sessionsForMuscle(m){return completedSessions().filter(s=>musEntries(s,m).length).sort((a,b)=>a.date<b.date?1:-1);} // newest first
+function muscleDayStats(s,m){
+ let sets=0,vol=0,best=0,bestW=0;
+ musEntries(s,m).forEach(e=>e.sets.forEach(st=>{
+  const w=toDisp(st.weight,st.unit);sets++;vol+=w*st.reps;
+  const er=e1rm(w,st.reps);if(er>best)best=er;if(w>bestW)bestW=w;
+ }));
+ return {sets:sets,vol:vol,bestE1rm:best,bestWeight:bestW};
+}
+function daysAgo(dateStr){
+ const a=parseLocal(dateStr);a.setHours(0,0,0,0);
+ const b=new Date();b.setHours(0,0,0,0);
+ return Math.round((b-a)/864e5);
+}
+function muscleSheetHTML(m){
+ const vi=DB.settings.lang==="vi";
+ const col=MCOLOR[m]||"var(--gold)";
+ let h=`<div class="mdet-head"><span class="mdet-dot" style="background:${col}"></span><h3 style="margin:0">${esc(mname(m))}</h3></div>`;
+ const list=sessionsForMuscle(m);
+ if(!list.length){
+  h+=`<div class="mdet-empty">${esc(vi?"Chưa có buổi tập nào cho nhóm cơ này.":"No sessions logged for this muscle yet.")}</div>`;
+  return h;
+ }
+ const last=list[0],prev=list[1]||null;
+ const cur=muscleDayStats(last,m);
+ const ago=daysAgo(last.date);
+ const agoTxt=ago===0?(vi?"hôm nay":"today"):ago===1?(vi?"hôm qua":"yesterday"):(vi?(ago+" ngày trước"):(ago+" days ago"));
+ h+=`<div class="mdet-sub">${esc(vi?"Buổi gần nhất":"Last session")}: <b style="color:var(--tx-1)">${esc(fmtDate(last.date))}</b> · ${esc(agoTxt)}</div>`;
+ h+=`<div class="mdet-kpis">
+   <div class="mdet-k"><div class="v">${cur.sets}</div><div class="l">${esc(vi?"set":"sets")}</div></div>
+   <div class="mdet-k"><div class="v">${fmtInt(cur.vol)}</div><div class="l">${esc(unitLbl())}</div></div>
+   <div class="mdet-k"><div class="v">${fmtN(cur.bestE1rm)}</div><div class="l">${esc(vi?"e1RM đỉnh":"top e1RM")}</div></div>
+ </div>`;
+ if(prev){
+  const p=muscleDayStats(prev,m);
+  if(p.bestE1rm>0&&cur.bestE1rm>0){
+   const pct=(cur.bestE1rm-p.bestE1rm)/p.bestE1rm*100;
+   const cls=pct>0.5?"up":(pct<-0.5?"down":"flat");
+   h+=`<div class="mdet-sub">${esc(vi?"So với buổi trước":"vs previous")} (${esc(fmtDate(prev.date))}): <span class="mdet-trend ${cls}">${pct>0?"+":""}${pct.toFixed(1)}%</span> <span style="color:var(--tx-3)">${fmtN(p.bestE1rm)} → ${fmtN(cur.bestE1rm)}</span></div>`;
+  }
+ }
+ h+=`<div class="caps" style="margin-top:var(--s4)">${esc(vi?"Bài đã tập":"Exercises done")}</div>`;
+ musEntries(last,m).forEach(e=>{
+  let best=0,bw=0,br=0;
+  e.sets.forEach(st=>{const w=toDisp(st.weight,st.unit),er=e1rm(w,st.reps);if(er>best){best=er;bw=w;br=st.reps;}});
+  h+=`<div class="mdet-ex"><div class="nm"><span>${esc(tn(e.name))}${e.isFst7?' <span class="badge fst">FST-7</span>':''}</span><span class="best">${fmtN(bw)}×${br}</span></div>`;
+  h+=`<div class="mdet-sets">`;
+  e.sets.forEach((st,i)=>{
+   const r=restOf(e.sets,i);
+   h+=`<span class="mdet-set${st.isPR?" pr":""}">${fmtN(toDisp(st.weight,st.unit))}×${st.reps}${st.isPR?" ★":""}${r!=null?` <span style="opacity:.6">· ${esc(fmtDur(r))}</span>`:""}</span>`;
+  });
+  h+=`</div>`;
+  const ar=avgRest(e.sets);
+  if(ar!=null)h+=`<div style="font-size:.6875rem;color:var(--tx-3);margin-top:5px">${esc(vi?"Nghỉ trung bình":"Avg rest")}: <b style="color:var(--tx-2)">${esc(fmtDur(ar))}</b></div>`;
+  h+=`</div>`;
+ });
+ if(list.length>1){
+  h+=`<div class="caps" style="margin-top:var(--s5)">${esc(vi?"Lịch sử nhóm cơ":"Muscle history")}</div>`;
+  list.slice(0,8).forEach(s=>{
+   const d=muscleDayStats(s,m);
+   h+=`<div class="mdet-hist"><span class="d">${esc(fmtDate(s.date))}</span><span class="n">${d.sets} ${esc(vi?"set":"sets")} · ${fmtInt(d.vol)} ${esc(unitLbl())} · e1RM ${fmtN(d.bestE1rm)}</span></div>`;
+  });
+ }
+ return h;
+}
+function openMuscleSheet(m){if(!m||MUSCLES.indexOf(m)<0)return;S.sheet="muscle";openSheet(muscleSheetHTML(m));vibrate(8);}
+
 /* ---------- UI STATE ---------- */
 const S={tab:"today",date:todayISO(),selDate:todayISO(),openEx:null,statsRange:"12w",statsExId:null,rest:{endsAt:0,dur:0,running:false},sheet:null,editing:null};
 let appToday=todayISO();
@@ -632,6 +793,7 @@ function render(){
  else m.innerHTML=viewMission();
  if(S.tab==="progress")drawProgress();
  if(S.tab==="mission")drawMission();
+ renderSinceLast();
  window.scrollTo({top:0,behavior:"auto"});
 }
 function applyI18nStatic(){
@@ -733,7 +895,7 @@ function exerciseCard(e,ei){
  h+=`<div class="ex-head" data-act="toggleEx" data-exid="${e.exId}">
    <div class="ex-name"><div class="nm">${esc(tn(e.name))}</div>
      <div class="meta">
-       <span class="mtag" style="background:${mc}22;color:${mc}">${esc(mname(e.muscle))}</span>
+       <span class="mtag" style="background:${mc}22;color:${mc}" data-act="muscleDetail" data-m="${e.muscle}" title="${esc(DB.settings.lang==="vi"?"Xem buổi gần nhất":"See last session")}">${esc(mname(e.muscle))}</span>
        ${e.isFst7?`<span class="badge fst">FST-7</span>`:``}
        <span>${e.sets.length}/${e.isFst7?7:(e.defaultSets||3)} sets</span>
      </div></div>
@@ -743,8 +905,10 @@ function exerciseCard(e,ei){
  h+=`<div class="ex-body">`;
  // committed sets
  e.sets.forEach((st,i)=>{
+  const rs=restOf(e.sets,i);
   h+=`<div class="setrow"><span class="si">${i+1}</span>
    <span class="sv">${fmtN(toDisp(st.weight,st.unit))} ${esc(unitLbl())} <span style="color:var(--tx-3)">×</span> ${st.reps}${st.rpe?` <span style="color:var(--tx-3)">@${st.rpe}</span>`:``}</span>
+   ${rs!=null?`<span class="rest${restClass(rs)}" title="${esc(DB.settings.lang==="vi"?"Nghỉ trước set này":"Rest before this set")}">⏱${esc(fmtDur(rs))}</span>`:``}
    <span class="se1">e1RM ${fmtN(toDisp(st.e1rm,st.unit))}</span>
    ${st.isPR?`<span class="pr">★ PR</span>`:``}
    <button class="del" data-act="delSet" data-exid="${e.exId}" data-i="${i}">✕</button></div>`;
@@ -807,6 +971,7 @@ function activeRow(e){
  if(DB.settings.showRPE){
   h+=`<div class="rpeline"><span>RPE</span><input id="rpe-${e.exId}" inputmode="decimal" class="num" placeholder="—"></div>`;
  }
+ h+=`<div class="sincelast"></div>`;
  h+=`<button class="logbtn" data-act="logSet" data-exid="${e.exId}">⚡ ${esc(t("log_set"))} ${idx+1}</button>`;
  h+=`</div>`;
  return h;
@@ -1087,7 +1252,7 @@ function drawMev(){
  let msg;if(above.length)msg=(DB.settings.lang==="vi"?"Trên MAV: ":"Above MAV: ")+above.join(", ")+(DB.settings.lang==="vi"?" — cân nhắc deload.":" — consider deload.");
  else if(below.length)msg=(DB.settings.lang==="vi"?"Dưới MEV: ":"Below MEV: ")+below.join(", ")+(DB.settings.lang==="vi"?" — thêm set.":" — add sets.");
  else msg=DB.settings.lang==="vi"?"Mọi nhóm cơ trong vùng tăng cơ. ✓":"Every trained muscle is in the growth zone. ✓";
- ins.innerHTML=msg;
+ ins.innerHTML=msg+`<div style="margin-top:6px;color:var(--gold-bright);font-size:.75rem">👆 ${esc(DB.settings.lang==="vi"?"Chạm một nhóm cơ để xem buổi tập gần nhất của nhóm đó.":"Tap a muscle to see its latest session.")}</div>`;
 }
 function drawFst(){
  const w=thisLastWeek();const host=$("#chartFst"),ins=$("#insFst");
@@ -1172,12 +1337,15 @@ function mevChart(rows){
  let s="";
  rows.forEach((r,i)=>{const y=i*rh+6;const zone=r.sets===0?"none":(r.sets<r.mev?"below":(r.sets>r.mav?"above":"in"));
   const col=zone==="in"?"var(--up)":zone==="below"?"var(--warn)":zone==="above"?"var(--down)":"var(--bg-3)";
+  // whole row is a tap target -> opens that muscle's last session
+  s+=`<g data-act="muscleDetail" data-m="${r.muscle}"><rect x="0" y="${y}" width="${W}" height="${rh-2}" rx="4" fill="transparent"/>`;
   s+=`<text x="${pl-8}" y="${y+rh/2}" text-anchor="end" font-size="10" fill="${MCOLOR[r.muscle]}" font-weight="600">${esc(mname(r.muscle))}</text>`;
   s+=`<rect x="${pl}" y="${y+6}" width="${Math.max(2,r.sets*scale)}" height="${rh-16}" rx="3" fill="${col}"/>`;
   s+=`<text x="${pl+Math.max(2,r.sets*scale)+6}" y="${y+rh/2+3}" font-size="10" fill="var(--tx-2)" font-family="monospace" font-weight="700">${r.sets}</text>`;
   // mev/mav ticks
   s+=`<line x1="${pl+r.mev*scale}" y1="${y+2}" x2="${pl+r.mev*scale}" y2="${y+rh-4}" stroke="var(--tx-3)" stroke-dasharray="2 2"/>`;
   s+=`<line x1="${pl+r.mav*scale}" y1="${y+2}" x2="${pl+r.mav*scale}" y2="${y+rh-4}" stroke="var(--down)" stroke-opacity=".6" stroke-dasharray="2 2"/>`;
+  s+=`<text x="${W-4}" y="${y+rh/2+4}" text-anchor="end" font-size="13" fill="var(--tx-4)">›</text></g>`;
  });
  s+=`<text x="${pl}" y="${H}" font-size="9" fill="var(--tx-3)">| ${esc(t("mev"))} (dash) · ${esc(t("mav"))} (red)</text>`;
  return `<svg viewBox="0 0 ${W} ${H+6}">${s}</svg>`;
@@ -1324,8 +1492,11 @@ function download(name,content,type){
 }
 function exportJson(){DB.settings.lastBackupAt=new Date().toISOString();persist(true);download("forge-backup-"+todayISO()+".json",JSON.stringify(DB,null,2),"application/json");toast(DB.settings.lang==="vi"?"Đã xuất sao lưu":"Backup exported");}
 function exportCsv(){
- let rows=[["date","day","exercise","muscle","isFST7","set","weight","unit","reps","rpe","e1rm","isPR"]];
- completedSessions().forEach(s=>s.entries.forEach(e=>e.sets.forEach(st=>{rows.push([s.date,s.dayKey,(e.name.en||"").replace(/,/g," "),e.muscle,e.isFst7?1:0,st.i,st.weight,st.unit,st.reps,st.rpe==null?"":st.rpe,fmtN(st.e1rm),st.isPR?1:0]);})));
+ let rows=[["date","workout","exercise","muscle","isFST7","set","weight","unit","reps","rpe","e1rm","isPR","restSec","loggedAt"]];
+ completedSessions().forEach(s=>s.entries.forEach(e=>e.sets.forEach((st,i)=>{
+   const r=restOf(e.sets,i);
+   rows.push([s.date,s.workoutKey||"",(e.name.en||"").replace(/,/g," "),e.muscle,e.isFst7?1:0,st.i,st.weight,st.unit,st.reps,st.rpe==null?"":st.rpe,fmtN(st.e1rm),st.isPR?1:0,r==null?"":r,st.ts||""]);
+ })));
  const csv=rows.map(r=>r.join(",")).join("\n");download("forge-sets-"+todayISO()+".csv",csv,"text/csv");toast("CSV exported");
 }
 function importJson(){$("#importFile").click();}
@@ -1401,6 +1572,7 @@ document.addEventListener("click",e=>{
   case"resetAll":resetAll();break;
   case"delSession":if(confirm(DB.settings.lang==="vi"?"Xóa buổi tập này?":"Delete this session?")){const d=a.dataset.date;const bak=DB.sessions[d];delete DB.sessions[d];save();render();toast(DB.settings.lang==="vi"?"Đã xóa":"Deleted",DB.settings.lang==="vi"?"Hoàn tác":"Undo",()=>{DB.sessions[d]=bak;save();render();});}break;
   case"toggleCheck":{const s=ensureSession(S.selDate);s.checks=s.checks||{};s.checks[a.dataset.key]=!s.checks[a.dataset.key];save();render();}break;
+  case"muscleDetail":openMuscleSheet(a.dataset.m);break;
  }
 });
 $$("#tabbar button").forEach(b=>b.addEventListener("click",()=>{S.tab=b.dataset.tab;DB.meta.lastTab=S.tab;save();render();}));
@@ -1429,6 +1601,48 @@ document.addEventListener("pointerup",clearHold);
 document.addEventListener("pointercancel",clearHold);
 document.addEventListener("pointerleave",clearHold);
 
+/* ---------- PWA / PLATFORM ---------- */
+function isStandalone(){
+ try{return (window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true;}catch(_){return false;}
+}
+function isIOS(){
+ const u=navigator.userAgent||"";
+ return /iPad|iPhone|iPod/.test(u)||(/Macintosh/.test(u)&&navigator.maxTouchPoints>1);
+}
+function inAppBrowser(){
+ const u=navigator.userAgent||"";
+ return /FBAN|FBAV|FB_IAB|FBIOS|Messenger|Instagram|MicroMessenger|Zalo|Line\//i.test(u);
+}
+function showNotice(html,warn,key){
+ if(key){try{if(localStorage.getItem(key)==="1")return;}catch(_){}}
+ const d=document.createElement("div");
+ d.className="notice"+(warn?" warn":"");
+ d.innerHTML='<div class="nb">'+html+'</div><span class="nx">✕</span>';
+ d.querySelector(".nx").addEventListener("click",function(){d.remove();if(key){try{localStorage.setItem(key,"1");}catch(_){}}});
+ const mn=$("#main");if(mn&&mn.parentNode===document.body)document.body.insertBefore(d,mn);
+}
+function platformNotices(){
+ const vi=DB.settings.lang==="vi";
+ if(inAppBrowser()){
+  showNotice(vi
+   ?"<b>Đang mở trong trình duyệt của app khác.</b> Dữ liệu có thể bị xóa khi đóng. Bấm ••• → <b>Mở trong Safari</b>, rồi cài về màn hình chính."
+   :"<b>You're in an in-app browser.</b> Data saved here can be wiped when it closes. Tap ••• → <b>Open in Safari</b>, then install it.",true);
+  return;
+ }
+ if(!isStandalone()&&isIOS()){
+  showNotice(vi
+   ?"<b>Cài FORGE thành app:</b> bấm Chia sẻ <b>⎋</b> → <b>Thêm vào MH chính</b>. Mở từ icon để chạy toàn màn hình và giữ dữ liệu an toàn."
+   :"<b>Install FORGE as an app:</b> tap Share <b>⎋</b> → <b>Add to Home Screen</b>. Launch from the icon for full screen and safe storage.",false,"forge.hideInstallHint");
+ }
+}
+function registerSW(){
+ try{
+  if(!('serviceWorker' in navigator))return;
+  if(location.protocol!=='https:'&&location.hostname!=='localhost'&&location.hostname!=='127.0.0.1')return;
+  navigator.serviceWorker.register('./sw.js').catch(function(e){console.warn('SW register failed',e);});
+ }catch(e){console.warn('SW unavailable',e);}
+}
+
 /* ---------- INIT ---------- */
 function syncToday(){
  // keep the displayed date in sync with the real device clock; advance the rotation at midnight / on reopen
@@ -1449,6 +1663,9 @@ function boot(){
   S.selDate=todayISO();S.date=todayISO();appToday=todayISO();
   S.statsExId=DB.settings.lastStatsExId||null;
   render();
+  registerSW();
+  platformNotices();
+  setInterval(renderSinceLast,1000); // live "time since last set" = real rest period
   setInterval(syncToday,30000); // real-time date: refresh road rail + roll over at midnight
   document.addEventListener("visibilitychange",function(){if(!document.hidden)syncToday();});
   window.addEventListener("focus",syncToday);
