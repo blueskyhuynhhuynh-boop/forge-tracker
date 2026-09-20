@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -395,8 +395,8 @@ const T={
   height:"Chiều cao",target_w:"Cân nặng mục tiêu",show_date:"Ngày thi đấu",division:"Hạng mục",lbm:"Cơ nạc",
  }
 };
-function t(k){const l=DB&&DB.settings?DB.settings.lang:'vi';return (T[l]&&T[l][k])||T.en[k]||k;}
-function tn(o){if(!o)return'';const l=DB&&DB.settings?DB.settings.lang:'vi';return o[l]||o.en||o.vi||'';}
+function t(k){const l=DB&&DB.settings?DB.settings.lang:'en';return (T[l]&&T[l][k])||T.en[k]||k;}
+function tn(o){if(!o)return'';const l=DB&&DB.settings?DB.settings.lang:'en';return o[l]||o.en||o.vi||'';}
 
 /* ---------- DEFAULT DATA ---------- */
 function ex(en,vi,muscle,sets,rest,fst){return {name:{en:en,vi:vi},muscle:muscle,defaultSets:sets,isFst7:!!fst,restSec:rest,fst7:fst?{repLow:8,repHigh:12,sameWeight:true}:null,notes:""};}
@@ -405,7 +405,7 @@ function defaultDB(){
  return {
   schemaVersion:1,
   meta:{createdAt:now,updatedAt:now,lastTab:"today",appName:"FORGE"},
-  settings:{lang:"vi",units:"lb",plateIncrement:5,repIncrement:1,showRPE:false,restDefaultSec:90,fst7RestSec:40,lastStatsRange:"12w",lastStatsExId:null,lastBackupAt:null},
+  settings:{lang:"en",units:"lb",plateIncrement:5,repIncrement:1,showRPE:false,restDefaultSec:90,fst7RestSec:40,lastStatsRange:"12w",lastStatsExId:null,lastBackupAt:null},
   athlete:{name:"Loc Tan Huynh",heightCm:179,division:"NPC Natural Classic Physique",
     goal:{targetWeightLb:174,targetBfPct:4.5,showDate:"2029-06-01"},
     phase:{id:"p1",name:{en:"Lean Recomp",vi:"Tái cấu trúc nạc"},index:1,start:"2026-04-01",end:"2026-10-31"}},
@@ -449,7 +449,13 @@ function load(){
     DB=defaultDB();persist(true);return;
   }
   DB=migrate(parsed);
- }catch(e){DB=defaultDB();}
+ }catch(e){
+  // never fall back to a blank DB without first preserving whatever was stored,
+  // otherwise the next save() would silently overwrite real training history
+  try{const raw=localStorage.getItem(KEY);if(raw)localStorage.setItem(KEY+".corrupt."+Date.now(),raw);}catch(_){}
+  DB=defaultDB();
+  try{showBanner("Couldn't load your saved data. A copy was kept — open Mission › Recover data to restore it.",true);}catch(_){}
+ }
 }
 function migrate(d){
  if(!d||typeof d!=="object")return defaultDB();
@@ -1450,6 +1456,7 @@ function viewMission(){
  h+=`<div class="card card-pad"><div class="caps" style="margin-bottom:12px">${esc(t("backup"))}</div>
    <button class="btn ghost" data-act="exportJson" style="margin-bottom:10px">⬇ ${esc(t("export_json"))}</button>
    <button class="btn ghost" data-act="importJson" style="margin-bottom:10px">⬆ ${esc(t("import_json"))}</button>
+   <button class="btn ghost" data-act="openRecover" style="margin-bottom:10px">🛟 ${esc(DB.settings.lang==="vi"?"Khôi phục dữ liệu":"Recover data")}</button>
    <button class="btn ghost" data-act="exportCsv" style="margin-bottom:10px">📄 ${esc(t("export_csv"))}</button>
    <button class="btn danger" data-act="resetAll">✕ ${esc(t("reset"))}</button>
    <input type="file" id="importFile" accept="application/json,.json" class="hidden">
@@ -1510,6 +1517,53 @@ function handleImport(file){
    }
  }catch(e){toast(DB.settings.lang==="vi"?"Không đọc được file":"Couldn't read file");}};
  rd.readAsText(file);
+}
+/* ---------- RECOVERY (restore an on-device snapshot) ---------- */
+function snapshotKeys(){
+ try{return Object.keys(localStorage).filter(k=>k.indexOf(KEY+".bak.")===0||k.indexOf(KEY+".corrupt.")===0).sort().reverse();}catch(e){return[];}
+}
+function snapshotInfo(k){
+ try{
+  const raw=localStorage.getItem(k);if(!raw)return null;
+  const o=JSON.parse(raw);
+  let days=0,sets=0;
+  Object.keys(o.sessions||{}).forEach(function(d){
+   const s=o.sessions[d];if(!s)return;
+   const n=(s.entries||[]).reduce(function(m,e){return m+((e.sets||[]).length);},0);
+   if(n>0){days++;sets+=n;}
+  });
+  const ts=parseInt(k.split(".").pop(),10);
+  return {key:k,days:days,sets:sets,when:isNaN(ts)?null:new Date(ts)};
+ }catch(e){return {key:k,days:0,sets:0,when:null,broken:true};}
+}
+function openRecoverSheet(){
+ const vi=DB.settings.lang==="vi";
+ const keys=snapshotKeys();
+ let h=`<h3>${esc(vi?"Khôi phục dữ liệu":"Recover data")}</h3>`;
+ if(!keys.length){
+  h+=`<div class="mdet-empty">${esc(vi?"Không có bản sao nào trên thiết bị/trình duyệt này. Nếu dữ liệu ở trình duyệt khác, hãy Xuất sao lưu ở đó rồi Nhập vào đây.":"No snapshots in this browser. If your data is in another browser, Export a backup there and Import it here.")}</div>`;
+ }else{
+  h+=`<div class="mdet-sub">${esc(vi?"Chọn một bản để khôi phục. Dữ liệu hiện tại sẽ được sao lưu trước.":"Pick a snapshot to restore. Your current data is backed up first.")}</div>`;
+  keys.forEach(function(k){
+   const i=snapshotInfo(k);if(!i)return;
+   h+=`<div class="mdet-hist"><span class="d">${esc(i.when?i.when.toLocaleString():k)}</span>
+     <span class="n">${i.sets} ${esc(vi?"set":"sets")} · ${i.days} ${esc(vi?"buổi":"days")}</span>
+     <button class="minib" data-act="restoreSnap" data-k="${esc(k)}">${esc(vi?"Khôi phục":"Restore")}</button></div>`;
+  });
+ }
+ S.sheet="recover";openSheet(h);
+}
+function restoreSnapshot(k){
+ const vi=DB.settings.lang==="vi";
+ try{
+  const raw=localStorage.getItem(k);
+  if(!raw){toast(vi?"Không tìm thấy bản sao":"Snapshot not found");return;}
+  const o=JSON.parse(raw);
+  if(!confirm(vi?"Khôi phục bản này? Dữ liệu hiện tại sẽ được sao lưu trước.":"Restore this snapshot? Your current data is backed up first."))return;
+  try{localStorage.setItem(KEY+".bak."+Date.now(),JSON.stringify(DB));}catch(_){}
+  DB=migrate(o);persist(true);closeSheet();render();
+  toast(vi?"Đã khôi phục dữ liệu":"Data restored");
+ }catch(e){toast(vi?"Không khôi phục được":"Restore failed");}
 }
 function resetAll(){if(confirm(t("confirm_reset"))){try{localStorage.setItem(KEY+".bak."+Date.now(),JSON.stringify(DB));}catch(_){}DB=defaultDB();persist(true);S.openEx=null;render();toast(DB.settings.lang==="vi"?"Đã đặt lại":"Reset done");}}
 
@@ -1573,6 +1627,8 @@ document.addEventListener("click",e=>{
   case"delSession":if(confirm(DB.settings.lang==="vi"?"Xóa buổi tập này?":"Delete this session?")){const d=a.dataset.date;const bak=DB.sessions[d];delete DB.sessions[d];save();render();toast(DB.settings.lang==="vi"?"Đã xóa":"Deleted",DB.settings.lang==="vi"?"Hoàn tác":"Undo",()=>{DB.sessions[d]=bak;save();render();});}break;
   case"toggleCheck":{const s=ensureSession(S.selDate);s.checks=s.checks||{};s.checks[a.dataset.key]=!s.checks[a.dataset.key];save();render();}break;
   case"muscleDetail":openMuscleSheet(a.dataset.m);break;
+  case"openRecover":openRecoverSheet();break;
+  case"restoreSnap":restoreSnapshot(a.dataset.k);break;
  }
 });
 $$("#tabbar button").forEach(b=>b.addEventListener("click",()=>{S.tab=b.dataset.tab;DB.meta.lastTab=S.tab;save();render();}));
