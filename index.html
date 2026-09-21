@@ -308,6 +308,14 @@ svg [data-act]{cursor:pointer}
 .notice b{color:var(--gold-bright)}
 .notice.warn b{color:var(--down)}
 .notice .nx{cursor:pointer;color:var(--tx-3);font-weight:800;padding:0 2px;flex:none}
+/* ---------- JUMP TO END / TOP ---------- */
+.jumpbtn{position:fixed;right:14px;bottom:calc(74px + env(safe-area-inset-bottom,0px));z-index:45;
+  width:46px;height:46px;border-radius:50%;background:rgba(31,35,42,.94);border:1px solid var(--line);
+  color:var(--gold-bright);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;
+  font-size:1.15rem;font-weight:800;line-height:1;box-shadow:0 6px 18px rgba(0,0,0,.5);
+  transition:transform .15s var(--ease-out),background .15s var(--ease-out)}
+.jumpbtn.show{display:flex}
+.jumpbtn:active{transform:scale(.88);background:var(--gold);color:#0A0B0D}
 </style>
 </head>
 <body>
@@ -338,6 +346,7 @@ svg [data-act]{cursor:pointer}
 
 <div class="scrim" id="scrim" data-act="closeSheet"></div>
 <div class="sheet" id="sheet"><div class="grab"></div><div id="sheetBody"></div></div>
+<button id="jumpBtn" class="jumpbtn" data-act="jumpScroll" aria-label="Jump to end">↓</button>
 <div class="toasts" id="toasts"></div>
 
 <script>
@@ -801,6 +810,7 @@ function render(){
  if(S.tab==="mission")drawMission();
  renderSinceLast();
  window.scrollTo({top:0,behavior:"auto"});
+ updateJumpBtn();
 }
 function applyI18nStatic(){
  $$("[data-i18n]").forEach(el=>{el.textContent=t(el.dataset.i18n);});
@@ -1568,8 +1578,8 @@ function restoreSnapshot(k){
 function resetAll(){if(confirm(t("confirm_reset"))){try{localStorage.setItem(KEY+".bak."+Date.now(),JSON.stringify(DB));}catch(_){}DB=defaultDB();persist(true);S.openEx=null;render();toast(DB.settings.lang==="vi"?"Đã đặt lại":"Reset done");}}
 
 /* ---------- SHEETS / TOASTS / FX ---------- */
-function openSheet(html){$("#sheetBody").innerHTML=html;$("#scrim").classList.add("show");$("#sheet").classList.add("show");}
-function closeSheet(){$("#scrim").classList.remove("show");$("#sheet").classList.remove("show");S.sheet=null;}
+function openSheet(html){$("#sheetBody").innerHTML=html;$("#scrim").classList.add("show");$("#sheet").classList.add("show");updateJumpBtn();}
+function closeSheet(){$("#scrim").classList.remove("show");$("#sheet").classList.remove("show");S.sheet=null;updateJumpBtn();}
 function showBanner(msg,sticky){const b=document.createElement("div");b.className="banner";b.innerHTML='<span>'+esc(msg)+'</span> <b class="bx" style="cursor:pointer;margin-left:8px;float:right">✕</b>';b.querySelector(".bx").addEventListener("click",function(){b.remove();});document.body.insertBefore(b,$("#main"));if(!sticky)setTimeout(function(){if(b.parentNode)b.remove();},12000);}
 let toastT=null;
 function toast(msg,actionLabel,actionFn,dur){
@@ -1627,6 +1637,7 @@ document.addEventListener("click",e=>{
   case"delSession":if(confirm(DB.settings.lang==="vi"?"Xóa buổi tập này?":"Delete this session?")){const d=a.dataset.date;const bak=DB.sessions[d];delete DB.sessions[d];save();render();toast(DB.settings.lang==="vi"?"Đã xóa":"Deleted",DB.settings.lang==="vi"?"Hoàn tác":"Undo",()=>{DB.sessions[d]=bak;save();render();});}break;
   case"toggleCheck":{const s=ensureSession(S.selDate);s.checks=s.checks||{};s.checks[a.dataset.key]=!s.checks[a.dataset.key];save();render();}break;
   case"muscleDetail":openMuscleSheet(a.dataset.m);break;
+  case"jumpScroll":jumpScroll();break;
   case"openRecover":openRecoverSheet();break;
   case"restoreSnap":restoreSnapshot(a.dataset.k);break;
  }
@@ -1656,6 +1667,35 @@ function clearHold(){if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}if(ho
 document.addEventListener("pointerup",clearHold);
 document.addEventListener("pointercancel",clearHold);
 document.addEventListener("pointerleave",clearHold);
+window.addEventListener("scroll",onScrollJump,{passive:true});
+window.addEventListener("resize",updateJumpBtn);
+
+/* ---------- JUMP TO END / TOP ---------- */
+function jumpMetrics(){
+ const doc=document.documentElement;
+ const max=Math.max(0,doc.scrollHeight-window.innerHeight);
+ const y=window.scrollY||doc.scrollTop||0;
+ return {max:max,y:y,atBottom:y>=max-80};
+}
+function updateJumpBtn(){
+ const b=$("#jumpBtn");if(!b)return;
+ const sh=$("#sheet");
+ const sheetOpen=!!(sh&&sh.classList.contains("show"));
+ const m=jumpMetrics();
+ // only worth showing once there is a real page of scrolling left
+ if(sheetOpen||m.max<240){b.classList.remove("show");return;}
+ b.classList.add("show");
+ b.textContent=m.atBottom?"↑":"↓";
+ b.setAttribute("aria-label",m.atBottom?"Back to top":"Jump to end");
+}
+function jumpScroll(){
+ const m=jumpMetrics();
+ window.scrollTo({top:m.atBottom?0:document.documentElement.scrollHeight,behavior:"smooth"});
+ vibrate(8);
+ setTimeout(updateJumpBtn,420);
+}
+let jumpRaf=null;
+function onScrollJump(){if(jumpRaf)return;jumpRaf=requestAnimationFrame(function(){jumpRaf=null;updateJumpBtn();});}
 
 /* ---------- PWA / PLATFORM ---------- */
 function isStandalone(){
