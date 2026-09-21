@@ -316,6 +316,21 @@ svg [data-act]{cursor:pointer}
   transition:transform .15s var(--ease-out),background .15s var(--ease-out)}
 .jumpbtn.show{display:flex}
 .jumpbtn:active{transform:scale(.88);background:var(--gold);color:#0A0B0D}
+/* ---------- STRENGTH SCAN ---------- */
+.scan-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line-soft);cursor:pointer}
+.scan-row:last-child{border-bottom:none}
+.scan-row:active{background:var(--bg-2)}
+.scan-dot{width:8px;height:8px;border-radius:50%;flex:none}
+.scan-n{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.scan-n b{font-size:.8125rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scan-n .scan-sub{font-size:.625rem;color:var(--tx-3);font-weight:500}
+.scan-mg{display:inline-block;margin-left:5px;font-size:.5625rem;background:var(--gold-wash);color:var(--gold-bright);border-radius:var(--r-pill);padding:0 5px;font-weight:800}
+.scan-s{flex:none;width:64px;height:24px;line-height:0}
+.scan-v{font-family:var(--mono);font-size:.75rem;color:var(--tx-2);width:44px;text-align:right;flex:none}
+.scan-d{font-family:var(--mono);font-size:.6875rem;font-weight:800;width:54px;text-align:right;flex:none}
+.scan-d.up{color:var(--up)} .scan-d.down{color:var(--down)} .scan-d.flat{color:var(--tx-3)} .scan-d.new{color:var(--gold-bright)}
+.scan-var{font-size:.75rem;color:var(--tx-3);background:var(--bg-2);border-radius:var(--r-md);padding:8px 10px;margin-bottom:var(--s3)}
+.scan-var b{color:var(--tx-2)}
 </style>
 </head>
 <body>
@@ -1166,6 +1181,7 @@ function viewProgress(){
  if(!S.statsExId||exIds.indexOf(S.statsExId)<0)S.statsExId=exIds[0];
  let h=`<h1 class="screen-title">${esc(t("tab_progress"))}</h1>`;
  h+=`<div id="kpis" class="kpis"></div>`;
+ h+=`<div class="card chart-card"><div class="chart-head"><h3>${esc(DB.settings.lang==="vi"?"Bảng sức mạnh":"Strength Scan")}</h3></div><div id="chartScan"></div><div class="chart-insight" id="insScan"></div></div>`;
  // e1RM chart with selector
  h+=`<div class="card chart-card"><div class="chart-head"><h3>${esc(t("c_e1rm"))}</h3></div>
    <div class="selchips" id="exSel">`+exIds.map(id=>`<button class="chip${id===S.statsExId?" sel":""}" data-act="selStatsEx" data-id="${id}">${esc(tn(loggedName(id)))}</button>`).join("")+`</div>
@@ -1183,7 +1199,7 @@ function uniqueLoggedExIds(){const set=[];completedSessions().forEach(s=>s.entri
 function loggedName(exId){for(const s of completedSessions())for(const e of s.entries)if(e.exId===exId)return e.name;return {en:exId,vi:exId};}
 
 function drawProgress(){
- drawKPIs();drawE1rm();drawTonnage();drawIncrease();drawMev();drawFst();drawBw();drawHeat();
+ drawKPIs();drawScan();drawE1rm();drawTonnage();drawIncrease();drawMev();drawFst();drawBw();drawHeat();
 }
 function thisLastWeek(){const wks=lastNWeekKeys(2);return {last:wks[0],cur:wks[1]};}
 function drawKPIs(){
@@ -1638,6 +1654,7 @@ document.addEventListener("click",e=>{
   case"toggleCheck":{const s=ensureSession(S.selDate);s.checks=s.checks||{};s.checks[a.dataset.key]=!s.checks[a.dataset.key];save();render();}break;
   case"muscleDetail":openMuscleSheet(a.dataset.m);break;
   case"jumpScroll":jumpScroll();break;
+  case"scanVariants":openScanSheet(a.dataset.k);break;
   case"openRecover":openRecoverSheet();break;
   case"restoreSnap":restoreSnapshot(a.dataset.k);break;
  }
@@ -1671,6 +1688,171 @@ window.addEventListener("scroll",onScrollJump,{passive:true});
 window.addEventListener("resize",updateJumpBtn);
 
 /* ---------- JUMP TO END / TOP ---------- */
+/* ---------- TYPO-TOLERANT EXERCISE MATCHING ---------- */
+const NAME_FILLER=['the','a','an','and','with','of','my','for','on','in'];
+function normName(s){
+ let x=String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+ let toks=x.split(' ').filter(Boolean)
+   .map(function(t){return t.length>3?t.replace(/s$/,''):t;})
+   .filter(function(t){return NAME_FILLER.indexOf(t)<0;});
+ if(!toks.length)toks=[x.replace(/ /g,'')];
+ return toks.sort().join('');
+}
+function bigramList(s){const o=[];for(let i=0;i<s.length-1;i++)o.push(s.substr(i,2));return o;}
+function diceSim(a,b){
+ if(a===b)return 1;
+ if(a.length<2||b.length<2)return 0;
+ const A=bigramList(a),B=bigramList(b),pool=B.slice();let hit=0;
+ for(let i=0;i<A.length;i++){const j=pool.indexOf(A[i]);if(j>-1){hit++;pool.splice(j,1);}}
+ return 2*hit/(A.length+B.length);
+}
+function sameExercise(a,b){
+ if(a===b)return true;
+ if(a.length>5&&b.length>5&&(a.indexOf(b)===0||b.indexOf(a)===0))return true;
+ return diceSim(a,b)>=0.7;
+}
+function exerciseGroups(){
+ // one row per REAL lift: merges "Korea Chest Press" / "Korean Chest Press" / "Korea Chest Preas"
+ const byId={};
+ completedSessions().forEach(function(sess){
+  sess.entries.forEach(function(e){
+   if(!e.sets||!e.sets.length)return;
+   let top=0,topW=0,topR=0;
+   e.sets.forEach(function(st){
+    const w=toDisp(st.weight,st.unit),er=e1rm(w,st.reps);
+    if(er>top){top=er;topW=w;topR=st.reps;}
+   });
+   const nm=tn(e.name)||e.exId;
+   if(!byId[e.exId])byId[e.exId]={name:nm,muscle:e.muscle,norm:normName(nm),pts:[],sets:0};
+   byId[e.exId].pts.push({date:sess.date,e1rm:top,weight:topW,reps:topR,name:nm});
+   byId[e.exId].sets+=e.sets.length;
+  });
+ });
+ const groups=[];
+ Object.keys(byId).forEach(function(id){
+  const it=byId[id];let g=null;
+  for(let i=0;i<groups.length;i++){
+   if(groups[i].muscle===it.muscle&&sameExercise(groups[i].norm,it.norm)){g=groups[i];break;}
+  }
+  if(!g){g={norm:it.norm,muscle:it.muscle,names:[],pts:[],sets:0};groups.push(g);}
+  if(g.names.indexOf(it.name)<0)g.names.push(it.name);
+  g.pts=g.pts.concat(it.pts);g.sets+=it.sets;
+ });
+ groups.forEach(function(g){
+  const byDate={};
+  g.pts.forEach(function(p){if(!byDate[p.date]||p.e1rm>byDate[p.date].e1rm)byDate[p.date]=p;});
+  g.pts=Object.keys(byDate).sort().map(function(d){return byDate[d];});
+  g.sessions=g.pts.length;
+  g.name=g.pts[g.pts.length-1].name; // show the spelling used most recently
+ });
+ return groups.sort(function(a,b){return b.sessions-a.sessions||b.sets-a.sets;});
+}
+function groupDelta(g){
+ if(!g.pts||g.pts.length<2)return null;
+ const a=g.pts[0].e1rm,b=g.pts[g.pts.length-1].e1rm;
+ return a>0?((b-a)/a*100):null;
+}
+function muscleTrends(){
+ const byM={};
+ completedSessions().forEach(function(sess){
+  MUSCLES.forEach(function(m){
+   const st=muscleDayStats(sess,m);
+   if(st.sets>0)(byM[m]=byM[m]||[]).push({date:sess.date,e1rm:st.bestE1rm,vol:st.vol});
+  });
+ });
+ return byM;
+}
+function sparkline(vals,color){
+ const w=64,h=24;
+ if(!vals||vals.length<2)return '<svg viewBox="0 0 '+w+' '+h+'" width="'+w+'" height="'+h+'"></svg>';
+ let mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals);
+ if(mx===mn)mx=mn+1;
+ const pts=vals.map(function(v,i){
+  const x=(i/(vals.length-1))*(w-3)+1.5;
+  const y=h-2-((v-mn)/(mx-mn))*(h-4);
+  return x.toFixed(1)+','+y.toFixed(1);
+ }).join(' ');
+ const last=vals[vals.length-1],lx=w-1.5,ly=h-2-((last-mn)/(mx-mn))*(h-4);
+ return '<svg viewBox="0 0 '+w+' '+h+'" width="'+w+'" height="'+h+'"><polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/><circle cx="'+lx.toFixed(1)+'" cy="'+ly.toFixed(1)+'" r="2" fill="'+color+'"/></svg>';
+}
+function deltaChipHTML(pct){
+ if(pct==null)return '<span class="scan-d new">new</span>';
+ const cls=pct>1?"up":(pct<-1?"down":"flat");
+ const ar=pct>1?"↑":(pct<-1?"↓":"→");
+ return '<span class="scan-d '+cls+'">'+ar+' '+(pct>0?"+":"")+pct.toFixed(0)+'%</span>';
+}
+function drawScan(){
+ const host=$("#chartScan"),ins=$("#insScan");if(!host)return;
+ const vi=DB.settings.lang==="vi";
+ const groups=exerciseGroups();
+ if(!groups.length){host.innerHTML=emptyChart(t("no_data"));if(ins)ins.innerHTML="";return;}
+ const mt=muscleTrends();
+ let h='<div class="caps" style="margin-bottom:4px">'+esc(vi?"Theo nhóm cơ":"By muscle group")+'</div>';
+ MUSCLES.forEach(function(m){
+  const pts=mt[m];if(!pts||!pts.length)return;
+  const gs=groups.filter(function(g){return g.muscle===m;});
+  // average each lift against ITSELF, so swapping exercises cannot fake a jump
+  const ds=gs.map(groupDelta).filter(function(d){return d!=null;});
+  const pct=ds.length?(ds.reduce(function(a,b){return a+b;},0)/ds.length):null;
+  const vols=pts.map(function(p){return p.vol;});
+  h+='<div class="scan-row" data-act="muscleDetail" data-m="'+m+'">'
+   +'<span class="scan-dot" style="background:'+MCOLOR[m]+'"></span>'
+   +'<span class="scan-n"><b>'+esc(mname(m))+'</b><span class="scan-sub">'+gs.length+' '+esc(vi?"bài":"lifts")+' · '+pts.length+' '+esc(vi?"buổi":"sessions")+'</span></span>'
+   +'<span class="scan-s">'+sparkline(vols,MCOLOR[m])+'</span>'
+   +'<span class="scan-v">'+fmtInt(vols[vols.length-1])+'</span>'
+   +deltaChipHTML(pct)+'</div>';
+ });
+ h+='<div class="caps" style="margin:16px 0 4px">'+esc(vi?"Theo bài tập":"By exercise")+'</div>';
+ groups.forEach(function(g){
+  const vals=g.pts.map(function(p){return p.e1rm;});
+  const col=MCOLOR[g.muscle]||"var(--gold)";
+  h+='<div class="scan-row" data-act="scanVariants" data-k="'+esc(g.norm)+'">'
+   +'<span class="scan-dot" style="background:'+col+'"></span>'
+   +'<span class="scan-n"><b>'+esc(g.name)+'</b>'
+   +'<span class="scan-sub">'+g.sessions+' '+esc(vi?"buổi":"sessions")+' · '+g.sets+' '+esc(vi?"set":"sets")
+   +(g.names.length>1?'<span class="scan-mg">'+g.names.length+' '+esc(vi?"tên":"names")+'</span>':'')+'</span></span>'
+   +'<span class="scan-s">'+sparkline(vals,col)+'</span>'
+   +'<span class="scan-v">'+fmtN(g.pts[g.pts.length-1].weight)+'</span>'
+   +deltaChipHTML(groupDelta(g))+'</div>';
+ });
+ host.innerHTML=h;
+ const merged=groups.filter(function(g){return g.names.length>1;}).length;
+ if(ins)ins.innerHTML=(vi
+   ?"Nhóm cơ: đường = khối lượng mỗi buổi, % = mức tăng sức mạnh trung bình của các bài thuộc nhóm đó. Bài tập: đường = e1RM, % = buổi mới nhất so với buổi đầu. Chạm để xem chi tiết."
+   :"Muscle rows: line = volume per session, % = average strength change across that muscle's lifts. Exercise rows: line = e1RM, % = latest vs first. Tap any row for detail.")
+   +(merged?('<div style="margin-top:6px;color:var(--gold-bright);font-size:.75rem">'+esc(vi
+     ?("Đã gộp "+merged+" bài bị gõ sai tên khác nhau.")
+     :(merged+" lifts had spelling variants and were merged automatically."))+'</div>'):'');
+}
+function openScanSheet(k){
+ const vi=DB.settings.lang==="vi";
+ const g=exerciseGroups().filter(function(x){return x.norm===k;})[0];
+ if(!g)return;
+ const col=MCOLOR[g.muscle]||"var(--gold)";
+ let h='<div class="mdet-head"><span class="mdet-dot" style="background:'+col+'"></span><h3 style="margin:0">'+esc(g.name)+'</h3></div>';
+ h+='<div class="mdet-sub">'+esc(mname(g.muscle))+' · '+g.sessions+' '+esc(vi?"buổi":"sessions")+' · '+g.sets+' '+esc(vi?"set":"sets")+'</div>';
+ if(g.names.length>1){
+  h+='<div class="scan-var">'+esc(vi?"Đã gộp các cách gõ tên:":"Merged spellings:")+' <b>'+g.names.map(esc).join('</b>, <b>')+'</b></div>';
+ }
+ const pct=groupDelta(g);
+ if(pct!=null){
+  const cls=pct>1?"up":(pct<-1?"down":"flat");
+  h+='<div class="mdet-sub">'+esc(vi?"Từ buổi đầu":"Since first session")+' ('+esc(fmtDate(g.pts[0].date))+'): <span class="mdet-trend '+cls+'">'+(pct>0?"+":"")+pct.toFixed(1)+'%</span> <span style="color:var(--tx-3)">'+fmtN(g.pts[0].e1rm)+' → '+fmtN(g.pts[g.pts.length-1].e1rm)+' e1RM</span></div>';
+ }
+ h+='<div class="caps" style="margin-top:var(--s4)">'+esc(vi?"Từng buổi (set nặng nhất)":"Session by session (top set)")+'</div>';
+ g.pts.slice().reverse().forEach(function(p,i,arr){
+  const prev=arr[i+1];
+  let d='';
+  if(prev&&prev.e1rm>0){
+   const dv=(p.e1rm-prev.e1rm)/prev.e1rm*100;
+   const c=dv>1?"up":(dv<-1?"down":"flat");
+   d=' <span class="mdet-trend '+c+'">'+(dv>0?"+":"")+dv.toFixed(0)+'%</span>';
+  }
+  h+='<div class="mdet-hist"><span class="d">'+esc(fmtDate(p.date))+'</span><span class="n">'+fmtN(p.weight)+' '+esc(unitLbl())+' × '+p.reps+' · e1RM '+fmtN(p.e1rm)+d+'</span></div>';
+ });
+ S.sheet="scan";openSheet(h);vibrate(8);
+}
+
 function jumpMetrics(){
  const doc=document.documentElement;
  const max=Math.max(0,doc.scrollHeight-window.innerHeight);
