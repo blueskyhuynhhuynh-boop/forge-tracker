@@ -331,6 +331,17 @@ svg [data-act]{cursor:pointer}
 .scan-d.up{color:var(--up)} .scan-d.down{color:var(--down)} .scan-d.flat{color:var(--tx-3)} .scan-d.new{color:var(--gold-bright)}
 .scan-var{font-size:.75rem;color:var(--tx-3);background:var(--bg-2);border-radius:var(--r-md);padding:8px 10px;margin-bottom:var(--s3)}
 .scan-var b{color:var(--tx-2)}
+/* ---------- BUILT-IN PLAN ---------- */
+.ex-name .meta{flex-wrap:wrap}
+.ptag{font-family:var(--mono);font-size:.625rem;color:var(--gold-bright);background:var(--gold-wash);border-radius:var(--r-pill);padding:2px 7px;font-weight:700;white-space:nowrap}
+.planbox{background:var(--bg-2);border:1px solid var(--line-soft);border-radius:var(--r-md);padding:10px 12px;margin:4px 0 10px;font-size:.8125rem;line-height:1.45}
+.planbox .pl1{color:var(--tx-1)}
+.planbox .pl2{color:var(--tx-2);margin-top:2px}
+.planbox .pl3{color:var(--warn);margin-top:4px;font-size:.75rem}
+.planbox .pl4{color:var(--tx-3);margin-top:6px;padding-top:6px;border-top:1px solid var(--line-soft);font-size:.75rem}
+.planbox .pl4.up{color:var(--up);font-weight:700}
+.card.brief{padding:10px 14px;font-size:.75rem;color:var(--tx-2);line-height:1.5}
+.card.brief div+div{margin-top:3px}
 </style>
 </head>
 <body>
@@ -424,7 +435,7 @@ function tn(o){if(!o)return'';const l=DB&&DB.settings?DB.settings.lang:'en';retu
 
 /* ---------- DEFAULT DATA ---------- */
 function ex(en,vi,muscle,sets,rest,fst){return {name:{en:en,vi:vi},muscle:muscle,defaultSets:sets,isFst7:!!fst,restSec:rest,fst7:fst?{repLow:8,repHigh:12,sameWeight:true}:null,notes:""};}
-function defaultDB(){
+function baseDB(){
  const now=new Date().toISOString();
  return {
   schemaVersion:1,
@@ -456,13 +467,219 @@ const MOTIVATE=[
  {en:"Compete against yesterday's numbers first.",vi:"Trước tiên hãy thắng những con số của hôm qua."}
 ];
 
+/* ---------- BUILT-IN PLAN (R0 block, Oct 12 – Dec 19, 2026) ----------
+   sets = [weeks 1-2, weeks 3-4, week 5+]. Loads are lb. Dumbbell loads are both dumbbells added.
+   Bump PLAN.id to re-install an edited plan; logged sets are never touched by an install. */
+const PLAN={
+ id:"r0-2026-10-v1",start:"2026-10-12",weeks:10,deloadWeek:7,
+ week:{mon:"p_cba",tue:"p_lega",wed:"rest",thu:"p_bcb",fri:"p_legb",sat:"p_sha",sun:"rest"},
+ workouts:{
+  p_cba:{en:"Chest + Back A",vi:"Ngực + Lưng A",min:60,muscles:["chest","back","triceps"],ex:["p_incline_smith","p_wide_pulldown","p_korean_press","p_cable_row","p_pushdown"]},
+  p_lega:{en:"Legs A",vi:"Chân A",min:60,muscles:["quads","hams","calves","shoulders","abs"],ex:["p_ham_curl_a","p_pro_squat","p_leg_ext","p_calf_a","p_cable_lateral","p_abs"]},
+  p_bcb:{en:"Back + Chest B",vi:"Lưng + Ngực B",min:55,muscles:["back","chest","shoulders","biceps"],ex:["p_power_row","p_rev_pulldown","p_decline_press","p_chest_fly","p_reverse_fly","p_cable_curl"]},
+  p_legb:{en:"Legs B",vi:"Chân B",min:45,muscles:["hams","quads","calves","abs"],ex:["p_ham_curl_b","p_hack_squat","p_db_rdl","p_calf_b","p_abs"]},
+  p_sha:{en:"Shoulders + Arms",vi:"Vai + Tay",min:55,muscles:["shoulders","biceps","triceps"],ex:["p_lateral_machine","p_panatta_press","p_reverse_fly","p_db_curl","p_pushdown","p_cable_tricep"]}
+ },
+ ex:{
+  p_incline_smith:{en:"Incline Smith Machine",m:"chest",sets:[3,3,3],lo:6,hi:9,left:"2",rest:180,start:125,step:"+5 lb",note:"30° bench. Pain-free range."},
+  p_wide_pulldown:{en:"Wide Pull-down",m:"back",sets:[3,3,3],lo:8,hi:10,left:"1",rest:180,start:230,step:"+1 pin",note:""},
+  p_korean_press:{en:"Korean Chest Press",m:"chest",sets:[2,2,2],lo:8,hi:10,left:"2",rest:150,start:125,step:"+5 lb",note:"Skip it today if shoulder pain is 4 or more."},
+  p_cable_row:{en:"Seated Cable Row",m:"back",sets:[2,2,2],lo:8,hi:10,left:"1",rest:150,start:180,step:"+1 pin",note:""},
+  p_pushdown:{en:"Tricep Push Down",m:"triceps",sets:[2,2,2],lo:8,hi:12,left:"1",rest:120,start:160,step:"+1 pin",note:""},
+  p_ham_curl_a:{en:"Hamstring Curl",m:"hams",sets:[2,3,3],lo:8,hi:12,left:"1",rest:120,start:110,step:"+1 pin",note:"Done first: it warms up the knee."},
+  p_pro_squat:{en:"Pro Squat",m:"quads",sets:[2,2,3],lo:10,hi:15,left:"2",rest:180,start:340,step:"+10–20 lb",note:"Pain-free depth only."},
+  p_leg_ext:{en:"Leg Extension",m:"quads",sets:[1,1,2],lo:12,hi:15,left:"2",rest:120,start:195,step:"+1 pin",note:"Lower for 2 seconds. Stop if knee pain is 4 or more."},
+  p_calf_a:{en:"Calf Raise",m:"calves",sets:[2,3,3],lo:8,hi:12,left:"0–1",rest:90,start:240,step:"+10 lb",note:"Pause 1 second at the bottom."},
+  p_cable_lateral:{en:"Leaning Cable Lateral Raise",m:"shoulders",sets:[3,3,3],lo:10,hi:15,left:"0–1",rest:90,start:38.5,step:"slower lowering first, then the next pin",note:"The next pin (51) is a big jump: add reps first."},
+  p_abs:{en:"Abs Machine",m:"abs",sets:[2,2,2],lo:10,hi:15,left:"1",rest:90,start:null,step:"+1 pin",note:"Pick a load that stops you at 10–15 reps. Type the machine load, not your body weight."},
+  p_power_row:{en:"Super Power Roll",m:"back",sets:[3,3,3],lo:8,hi:12,left:"1",rest:150,start:180,step:"+1 pin",note:""},
+  p_rev_pulldown:{en:"Reverse-grip Pull-down",m:"back",sets:[2,2,2],lo:8,hi:12,left:"1",rest:150,start:180,step:"+1 pin",note:""},
+  p_decline_press:{en:"Decline Chest Press",m:"chest",sets:[2,2,2],lo:8,hi:12,left:"2",rest:150,start:120,step:"+5 lb",note:"Same machine every week: the one you logged as Decline Chest Press at 140 lb."},
+  p_chest_fly:{en:"Chest Fly",m:"chest",sets:[2,2,2],lo:12,hi:15,left:"2",rest:120,start:115,step:"+1 pin",note:"The machine you logged as Chest Fly at 140 lb. Stop the stretch before any shoulder pain."},
+  p_reverse_fly:{en:"Reverse Fly",m:"shoulders",sets:[2,2,2],lo:12,hi:15,left:"0–1",rest:90,start:120,step:"+1 pin",note:"Rear delts. The machine you logged as Reverse fly at 135 lb."},
+  p_cable_curl:{en:"Cable Straight Bar Curl",m:"biceps",sets:[2,2,2],lo:10,hi:12,left:"0–1",rest:90,start:111,step:"+1 pin",note:""},
+  p_ham_curl_b:{en:"Hamstring Curl",m:"hams",sets:[1,2,2],lo:10,hi:15,left:"1",rest:120,start:98,step:"+1 pin",note:"Lighter, higher-rep day."},
+  p_hack_squat:{en:"Atlantis Hack Squat",m:"quads",sets:[1,1,2],lo:8,hi:12,left:"2",rest:180,start:495,step:"+10–20 lb",note:"Use the leg press instead if knee pain is 4 or more."},
+  p_db_rdl:{en:"Dumbbell Romanian Deadlift",m:"hams",sets:[2,2,2],lo:8,hi:12,left:"2–3",rest:150,start:80,startTxt:"two 40 lb dumbbells (type 80)",step:"+5 lb per hand (type +10)",
+   ease:{weeks:3,lo:10,hi:10,left:"4+"},note:"New lift: the first 3 weeks are easy on purpose. Flat back, slow lowering. Stop if your back hurts."},
+  p_calf_b:{en:"Calf Raise",m:"calves",sets:[2,2,2],lo:10,hi:15,left:"0–1",rest:90,start:220,step:"+10 lb",note:"Pause 1 second at the bottom."},
+  p_lateral_machine:{en:"Seated Shoulder Raise Machine",m:"shoulders",sets:[3,3,3],lo:12,hi:20,left:"0–1",rest:90,start:30,step:"+1 pin",note:"Side delts."},
+  p_panatta_press:{en:"Panatta Shoulder Press",m:"shoulders",sets:[2,2,2],lo:8,hi:10,left:"2",rest:180,start:90,step:"+5 lb",note:"First exercise to drop if the shoulder hurts: do 2 extra lateral-raise sets instead."},
+  p_db_curl:{en:"Standing DB Curl",m:"biceps",sets:[3,3,3],lo:8,hi:12,left:"1",rest:120,start:90,startTxt:"two 45 lb dumbbells (type 90)",step:"two 50s (type 100)",note:"Type both dumbbells added together."},
+  p_cable_tricep:{en:"Cable Tricep",m:"triceps",sets:[2,2,2],lo:10,hi:15,left:"0–1",rest:90,start:100,step:"+1 pin",note:"Arms at your sides. No overhead work for now."}
+ }
+};
+function planInstalled(d){return !!(d&&d.program&&d.program.plan&&d.program.plan.id===PLAN.id);}
+function installPlan(d){
+ const p=d.program=d.program||{};
+ p.exercises=p.exercises||{};p.workouts=p.workouts||{};
+ // old rotation labels and their exercise lists stay exactly as they are (History still names them); they are only hidden from the picker
+ Object.keys(p.workouts).forEach(function(k){const w=p.workouts[k];if(w&&!PLAN.workouts[k])w.archived=true;});
+ Object.keys(PLAN.ex).forEach(function(id){
+  const x=PLAN.ex[id],old=p.exercises[id];
+  p.exercises[id]={name:{en:x.en,vi:x.vi||x.en},muscle:x.m,defaultSets:x.sets[2],isFst7:false,restSec:x.rest,fst7:null,notes:(old&&old.notes)||"",
+   plan:{sets:x.sets.slice(),lo:x.lo,hi:x.hi,left:x.left,start:x.start,startTxt:x.startTxt||null,step:x.step,ease:x.ease?Object.assign({},x.ease):null,note:x.note||""}};
+ });
+ Object.keys(PLAN.workouts).forEach(function(k){
+  const w=PLAN.workouts[k],old=p.workouts[k];
+  // exercises you added to a plan day yourself survive a plan update
+  const extra=((old&&old.exerciseIds)||[]).filter(function(id){return w.ex.indexOf(id)<0&&p.exercises[id]&&!p.exercises[id].plan;});
+  p.workouts[k]={title:{en:w.en,vi:w.vi||w.en},muscles:w.muscles.slice(),exerciseIds:w.ex.concat(extra),plan:true,minutes:w.min};
+ });
+ p.cycle=p.cycle||{onDays:3,offDays:1,startDate:PLAN.start,order:[]};
+ // "from" = the first day the weekly plan decides what a day is; earlier days keep the old rotation
+ p.plan={id:PLAN.id,start:PLAN.start,weeks:PLAN.weeks,deloadWeek:PLAN.deloadWeek,week:Object.assign({},PLAN.week),from:(p.plan&&p.plan.from)||todayISO(),installedAt:new Date().toISOString()};
+ // days from today on that hold nothing at all (no set, cardio, note or tick) were auto-built from the old lists: let them rebuild from the plan.
+ // anything with a logged set is left exactly as it is.
+ const today=todayISO();
+ Object.keys(d.sessions||{}).forEach(function(k){
+  const s=d.sessions[k];if(!s||k<today)return;
+  const logged=(s.entries||[]).some(function(e){return e.sets&&e.sets.length>0;});
+  const ticked=!!(s.checks&&Object.keys(s.checks).some(function(c){return s.checks[c];}));
+  if(!logged&&s.cardioMin==null&&!s.note&&!ticked)delete d.sessions[k];
+ });
+ return d;
+}
+function defaultDB(){const d=baseDB();installPlan(d);return d;}
+/* snapshots (safety copies kept on the device) */
+function snapTs(k){return parseInt(k.slice(k.lastIndexOf(".")+1),10)||0;}
+function snapsOldestFirst(){try{return Object.keys(localStorage).filter(function(k){return k.indexOf(KEY+".bak.")===0||k.indexOf(KEY+".corrupt.")===0;}).sort(function(a,b){return snapTs(a)-snapTs(b);});}catch(e){return [];}}
+function backupCurrent(){try{localStorage.setItem(KEY+".bak."+Date.now(),JSON.stringify(DB));return true;}catch(e){return false;}}
+const PLAN_DAYS=["mon","tue","wed","thu","fri","sat","sun"];
+const PLAN_DAY_LBL={en:{mon:"Mon",tue:"Tue",wed:"Wed",thu:"Thu",fri:"Fri",sat:"Sat",sun:"Sun"},vi:{mon:"T2",tue:"T3",wed:"T4",thu:"T5",fri:"T6",sat:"T7",sun:"CN"}};
+function planOrder(){
+ const pl=DB.program.plan;
+ if(!pl||!pl.week)return DB.program.cycle.order;
+ const out=[];PLAN_DAYS.forEach(function(dk){const k=pl.week[dk];if(k&&k!=="rest"&&out.indexOf(k)<0&&DB.program.workouts[k])out.push(k);});
+ return out;
+}
+function planDayLabel(k){
+ const pl=DB.program.plan;if(!pl||!pl.week)return"";
+ const L=PLAN_DAY_LBL[DB.settings.lang==="vi"?"vi":"en"];
+ return PLAN_DAYS.filter(function(dk){return pl.week[dk]===k;}).map(function(dk){return L[dk];}).join("/");
+}
+function planWeek(dateStr){
+ const pl=DB.program.plan;if(!pl)return null;
+ const days=Math.round((parseLocal(dateStr)-parseLocal(pl.start))/864e5);
+ return days<0?0:Math.floor(days/7)+1;
+}
+function planStage(dateStr){
+ const w=planWeek(dateStr);if(w==null)return null;
+ const pl=DB.program.plan;
+ if(w===pl.deloadWeek)return {w:w,idx:2,deload:true};
+ return {w:w,idx:w<=2?0:(w<=4?1:2),deload:false};
+}
+function plannedSets(def,dateStr){
+ if(!def)return 3;
+ if(!def.plan)return def.defaultSets||3;
+ const st=planStage(dateStr||todayISO());
+ if(!st)return def.plan.sets[2];
+ return st.deload?Math.max(1,Math.ceil(def.plan.sets[2]/2)):def.plan.sets[st.idx];
+}
+// what the plan asks for on a given date (a new lift eases in over its first weeks)
+function planNow(def,dateStr){
+ const p=def.plan,st=planStage(dateStr),e=p.ease;
+ if(e&&st&&!st.deload&&st.w<=e.weeks)return {lo:e.lo,hi:e.hi,left:e.left,step:e.step||p.step};
+ return {lo:p.lo,hi:p.hi,left:p.left,step:p.step};
+}
+function planPill(dateStr){
+ const pl=DB.program.plan,vi=DB.settings.lang==="vi";
+ if(!pl)return `<div class="phasepill">${esc(t("phase"))} ${DB.athlete.phase.index} · ${esc(tn(DB.athlete.phase.name).toUpperCase())}</div>`;
+ const st=planStage(dateStr);let txt;
+ if(st.w===0){
+  const d0=parseLocal(pl.start).toLocaleDateString(vi?"vi-VN":"en-US",{weekday:"short",day:"numeric",month:"short"});
+  txt=(vi?"TUẦN TẬP THỬ · TUẦN 1 BẮT ĐẦU ":"PRACTICE DAYS · WEEK 1 STARTS ")+d0.toUpperCase();
+ }else{
+  txt=(vi?"TUẦN ":"WEEK ")+st.w+(st.w<=pl.weeks?(vi?" / ":" OF ")+pl.weeks:"")+" · "+(st.deload?(vi?"GIẢM TẢI":"DELOAD"):(st.w<=2?(vi?"LÀM QUEN":"EASE-IN"):(vi?"TĂNG TIẾN":"BUILD")));
+ }
+ return `<div class="phasepill">${esc(txt)}</div>`;
+}
+function planBrief(wk,dateStr){
+ const w=DB.program.workouts[wk];if(!w||!w.plan)return"";
+ const vi=DB.settings.lang==="vi",st=planStage(dateStr),L=[];
+ L.push(vi?("Khoảng "+w.minutes+" phút. Khởi động (không ghi): đi bộ 5 phút, rồi 50% × 8, 70% × 5, 85% × 2 trước bài đẩy, máy squat hoặc RDL đầu tiên.")
+          :("About "+w.minutes+" min. Warm-up (don't log it): 5 min walk, then 50% × 8, 70% × 5, 85% × 2 before the first press, squat machine or RDL."));
+ if(st&&st.deload)L.push(vi?"TUẦN GIẢM TẢI: giữ mức tạ, nửa số set, dừng khi còn 3–4 rep. Tuần này không tăng gì.":"DELOAD WEEK: same loads, half the sets, stop with 3–4 reps left. Nothing goes up this week.");
+ else{
+  L.push(vi?"Cùng một mức tạ cho mọi set chính. Mỗi buổi cố thêm 1 rep.":"Same weight on every hard set. Try to add 1 rep each session.");
+  if(st&&st.w<=2)L.push(vi?"Làm quen: dùng mức tạ ghi sẵn. Nếu set 1 thấp hơn khoảng rep, giảm 5–10 lb ngay.":"Ease-in: use the start loads. If set 1 lands under the rep range, take 5–10 lb off right away.");
+ }
+ L.push(vi?"Đau 3/10: giữ tạ, không tăng. Đau từ 4: đổi bài.":"Pain 3 out of 10: same load, no progression. Pain 4 or more: swap the exercise.");
+ return `<div class="card brief">${L.map(function(x){return "<div>"+esc(x)+"</div>";}).join("")}</div>`;
+}
+function planRange(p){return p.lo===p.hi?String(p.lo):(p.lo+"–"+p.hi);}
+function planTag(def){
+ const vi=DB.settings.lang==="vi",st=planStage(S.selDate),n=plannedSets(def,S.selDate),now=planNow(def,S.selDate);
+ if(st&&st.deload)return `<span class="ptag">${n} ${esc(vi?"set":(n===1?"set":"sets"))} · ${esc(vi?"chừa":"leave")} 3–4 · ⏱${esc(fmtDur(def.restSec))}</span>`;
+ return `<span class="ptag">${n}×${esc(planRange(now))} · ${esc(vi?"chừa":"leave")} ${esc(now.left)} · ⏱${esc(fmtDur(def.restSec))}</span>`;
+}
+function lastEntryBefore(exId,dateStr){
+ // the deload week is skipped as a reference once it is over: its reps are cut short on purpose
+ const st=planStage(dateStr),inDl=!!(st&&st.deload);
+ const sess=completedSessions().filter(function(s){return s.date<dateStr;}).reverse();
+ for(const s of sess){
+  if(!inDl){const ps=planStage(s.date);if(ps&&ps.deload)continue;}
+  const pe=s.entries.find(function(x){return x.exId===exId&&x.sets.length>0;});
+  if(pe)return {date:s.date,sets:pe.sets};
+ }
+ return null;
+}
+// true when last time every planned set reached the top of the rep range at one weight
+function planGoUp(def,last,dateStr){
+ if(!def||!def.plan||!last||!last.sets.length)return false;
+ const st=planStage(dateStr);if(st&&st.deload)return false;
+ const now=planNow(def,dateStr),w0=last.sets[0].weight;
+ const same=last.sets.every(function(x){return Math.abs(x.weight-w0)<0.001;});
+ const need=Math.min(plannedSets(def,dateStr),plannedSets(def,last.date));
+ return same&&last.sets.length>=need&&last.sets.every(function(x){return x.reps>=now.hi;});
+}
+function lastSetRest(){
+ // planned rest of the lift whose set was logged most recently in the selected session
+ const s=DB.sessions[S.selDate];if(!s)return null;
+ let mx=null,rest=null;
+ s.entries.forEach(function(e){(e.sets||[]).forEach(function(st){const tm=tsMs(st);if(tm!=null&&(mx==null||tm>mx)){mx=tm;rest=e.restSec;}});});
+ return rest;
+}
+function planBox(e,def){
+ const p=def.plan,vi=DB.settings.lang==="vi",st=planStage(S.selDate),dl=!!(st&&st.deload);
+ const n=plannedSets(def,S.selDate),now=planNow(def,S.selDate);
+ let h=`<div class="planbox">`;
+ if(dl){
+  h+=`<div class="pl1"><b>${n} ${esc(vi?"set":(n===1?"set":"sets"))}</b> · ${esc(vi?"dừng khi còn":"stop with")} <b>3–4</b> ${esc(vi?"rep":"reps left")} · ${esc(vi?"nghỉ":"rest")} <b>${esc(fmtDur(def.restSec))}</b></div>`;
+  h+=`<div class="pl2">${esc(vi?"Tuần giảm tải: dùng mức tạ của tuần trước. Không tăng gì.":"Deload week: use last week's weight. Nothing goes up.")}</div>`;
+ }else{
+  h+=`<div class="pl1"><b>${n} × ${esc(planRange(now))}</b> ${esc(vi?"rep":"reps")} · ${esc(vi?"chừa":"leave")} <b>${esc(now.left)}</b> · ${esc(vi?"nghỉ":"rest")} <b>${esc(fmtDur(def.restSec))}</b></div>`;
+  const startTxt=p.startTxt||(p.start!=null?(fmtN(toDisp(p.start,"lb"))+" "+unitLbl()):"");
+  h+=`<div class="pl2">${startTxt?esc((vi?"Bắt đầu: ":"Start: ")+startTxt)+" · ":""}${esc(vi?("khi mọi set đạt "+now.hi+" → "+now.step):("when every set hits "+now.hi+" → "+now.step))}</div>`;
+ }
+ if(p.note)h+=`<div class="pl3">${esc(p.note)}</div>`;
+ const last=lastEntryBefore(e.exId,S.selDate);
+ if(last){
+  const reps=last.sets.map(function(x){return x.reps;}),w0=last.sets[0].weight;
+  const same=last.sets.every(function(x){return Math.abs(x.weight-w0)<0.001;});
+  const wtxt=same?(fmtN(toDisp(w0,last.sets[0].unit))+" "+unitLbl()+" × "+reps.join(", ")):last.sets.map(function(x){return fmtN(toDisp(x.weight,x.unit))+"×"+x.reps;}).join(", ");
+  const goUp=planGoUp(def,last,S.selDate);
+  const cue=goUp?(vi?("Mọi set đã đạt "+now.hi+" → hôm nay tăng: "+now.step+". Nhập mức tạ mới."):("Every set hit "+now.hi+" → go up today: "+now.step+". Type the new weight."))
+               :(dl?(vi?"Giảm tải: giữ nguyên mức tạ này.":"Deload: keep this weight."):(vi?"Giữ mức tạ, cố thêm 1 rep.":"Same weight. Beat it by 1 rep."));
+  h+=`<div class="pl4${goUp?" up":""}">${esc((vi?"Lần trước (":"Last time (")+fmtDate(last.date)+"): "+wtxt)}<br>${esc(cue)}</div>`;
+ }
+ h+=`</div>`;
+ return h;
+}
+
 /* ---------- STORAGE ---------- */
 const KEY="forge.v1", METAKEY="forge.meta";
 let DB=null, saveTimer=null, storageOK=true, storageWarned=false;
 function lsAvailable(){try{const k="__forge_probe__";localStorage.setItem(k,"1");localStorage.removeItem(k);return true;}catch(e){return false;}}
 function pruneSnapshots(keepLatest){try{const keys=Object.keys(localStorage).filter(k=>k.indexOf(KEY+".bak.")===0||k.indexOf(KEY+".corrupt.")===0).sort();const drop=keepLatest?keys.slice(0,-1):keys;drop.forEach(k=>{try{localStorage.removeItem(k);}catch(_){}});return drop.length;}catch(e){return 0;}}
 function load(){
- if(!lsAvailable()){storageOK=false;DB=defaultDB();warnStorage();return;}
+ let upgraded=false,noCopy=false;
+ if(!lsAvailable()){
+  // storage refuses writes: still show whatever is already saved instead of an empty app
+  storageOK=false;
+  try{const r0=localStorage.getItem(KEY);DB=r0?migrate(JSON.parse(r0)):defaultDB();}catch(_){DB=defaultDB();}
+  warnStorage();return;
+ }
  try{
   const raw=localStorage.getItem(KEY);
   if(!raw){DB=defaultDB();persist(true);return;}
@@ -472,13 +689,22 @@ function load(){
     showBanner("Couldn't read saved data. A backup of the corrupt file was kept. Starting fresh — import a backup in Mission › Backup if you have one.");
     DB=defaultDB();persist(true);return;
   }
+  // keep an untouched copy before the program section is upgraded (Mission › Recover data can restore it)
+  const needsPlan=!planInstalled(parsed);
+  if(needsPlan){try{localStorage.setItem(KEY+".bak."+Date.now(),raw);}catch(_){noCopy=true;}}
   DB=migrate(parsed);
+  upgraded=needsPlan;
  }catch(e){
   // never fall back to a blank DB without first preserving whatever was stored,
   // otherwise the next save() would silently overwrite real training history
   try{const raw=localStorage.getItem(KEY);if(raw)localStorage.setItem(KEY+".corrupt."+Date.now(),raw);}catch(_){}
   DB=defaultDB();
   try{showBanner("Couldn't load your saved data. A copy was kept — open Mission › Recover data to restore it.",true);}catch(_){}
+ }
+ if(upgraded){
+  // outside the try on purpose: a failed save must never be mistaken for unreadable data
+  persist(true);
+  if(noCopy){try{showBanner("Your training plan is installed and every logged set is still here, but the phone had no room for a safety copy. Open Mission › Export backup (JSON) now.",true);}catch(_){}}
  }
 }
 function migrate(d){
@@ -512,6 +738,7 @@ function migrate(d){
  d.muscleTargets=Object.assign({},def.muscleTargets,d.muscleTargets||{});
  d.sessions=d.sessions||{};
  d.bodyLog=Array.isArray(d.bodyLog)?d.bodyLog:[];
+ if(!planInstalled(d))installPlan(d);
  return d;
 }
 function writeNow(){
@@ -524,8 +751,12 @@ function persist(skipDot){
  try{
   writeNow();storageOK=true;if(!skipDot)flashSave();
  }catch(e){
-  // likely a quota error: free old snapshot/backup keys and retry once
-  if(pruneSnapshots(false)>0){try{writeNow();storageOK=true;if(!skipDot)flashSave();return;}catch(_){}}
+  // likely a quota error: free safety copies one at a time, oldest first, so the newest ones survive as long as possible
+  const snaps=snapsOldestFirst();
+  while(snaps.length){
+   try{localStorage.removeItem(snaps.shift());}catch(_){}
+   try{writeNow();storageOK=true;if(!skipDot)flashSave();return;}catch(_){}
+  }
   storageOK=false;warnStorage();
  }
 }
@@ -572,6 +803,9 @@ function unitLbl(){return DB.settings.units;}
 
 /* ---------- SESSION ACCESS ---------- */
 function suggestedWorkout(dateStr){
+ const pl=DB.program.plan;
+ // fixed weekly plan from the day it was installed; earlier days are still read with the old rotation
+ if(pl&&pl.week&&(!pl.from||dateStr>=pl.from))return pl.week[DOW[parseLocal(dateStr).getDay()]]||'rest';
  const cy=DB.program.cycle;const order=cy.order;
  const start=parseLocal(cy.startDate||todayISO()),d=parseLocal(dateStr);
  const dayIndex=Math.round((d-start)/864e5);
@@ -584,14 +818,14 @@ function suggestedWorkout(dateStr){
  return order[idx];
 }
 function workoutKeyFor(dateStr){const s=DB.sessions[dateStr];if(s&&s.workoutKey)return s.workoutKey;return suggestedWorkout(dateStr);}
-function makeEntry(id,def){return {exId:id,name:{en:def.name.en,vi:def.name.vi},muscle:def.muscle,isFst7:def.isFst7,defaultSets:def.defaultSets,restSec:def.restSec,fst7:def.fst7,fstWeight:null,fstUnlocked:false,note:"",sets:[]};}
+function makeEntry(id,def,dateStr){return {exId:id,name:{en:def.name.en,vi:def.name.vi},muscle:def.muscle,isFst7:def.isFst7,defaultSets:plannedSets(def,dateStr),restSec:def.restSec,fst7:def.fst7,fstWeight:null,fstUnlocked:false,note:"",sets:[]};}
 function ensureSession(dateStr){
  let s=DB.sessions[dateStr];
  if(!s){
   const wk=workoutKeyFor(dateStr);
   s={id:"s_"+Date.now(),date:dateStr,workoutKey:wk,type:wk==='rest'?'rest':'lift',startedAt:null,endedAt:null,note:"",cardioMin:null,entries:[],checks:{}};
   const w=DB.program.workouts[wk];
-  if(w&&w.exerciseIds){w.exerciseIds.forEach(id=>{const def=DB.program.exercises[id];if(def)s.entries.push(makeEntry(id,def));});}
+  if(w&&w.exerciseIds){w.exerciseIds.forEach(id=>{const def=DB.program.exercises[id];if(def)s.entries.push(makeEntry(id,def,dateStr));});}
   DB.sessions[dateStr]=s;
  }
  return s;
@@ -601,14 +835,15 @@ function setWorkout(dateStr,wk){
  if(s.workoutKey===wk)return;
  const keep=s.entries.filter(e=>e.sets&&e.sets.length);
  if(keep.length&&!confirm(DB.settings.lang==="vi"?"Đổi buổi tập? Các set đã ghi sẽ được giữ lại.":"Switch workout? Logged sets will be kept.")){return;}
+ if(DB.program.plan&&!s.prevKey&&s.workoutKey!=='rest'&&DB.program.workouts[s.workoutKey]&&!DB.program.workouts[s.workoutKey].plan)s.prevKey=s.workoutKey; // an old label stays reachable so a relabel can be undone
  s.workoutKey=wk;s.type=wk==='rest'?'rest':'lift';
  const ids=(DB.program.workouts[wk]?DB.program.workouts[wk].exerciseIds:[]);
  const out=[];
- ids.forEach(id=>{const def=DB.program.exercises[id];if(!def)return;const ex=keep.find(k=>k.exId===id);out.push(ex||makeEntry(id,def));});
+ ids.forEach(id=>{const def=DB.program.exercises[id];if(!def)return;const ex=keep.find(k=>k.exId===id);out.push(ex||makeEntry(id,def,dateStr));});
  keep.forEach(k=>{if(ids.indexOf(k.exId)<0)out.push(k);});
  s.entries=out;
  // re-anchor the rotation when setting TODAY's workout, so the following days auto-suggest from here
- if(wk!=='rest'&&dateStr===todayISO()){
+ if(!DB.program.plan&&wk!=='rest'&&dateStr===todayISO()){
   const ord=DB.program.cycle.order,i=ord.indexOf(wk);
   if(i>0)DB.program.cycle.order=ord.slice(i).concat(ord.slice(0,i));
   DB.program.cycle.startDate=dateStr;
@@ -624,7 +859,7 @@ function openExerciseSheet(wk,exId){
  openSheet(`<h3>${esc(exId?t("edit_exercise"):t("add_exercise"))}</h3>
   <div class="field"><label>${esc(t("ex_name"))}</label><input id="exName" type="text" value="${def?esc(def.name.en):""}" placeholder="${esc(t("ex_name_ph"))}" autocomplete="off"></div>
   <div class="field"><label>${esc(t("muscle"))}</label><select id="exMuscle">${opts}</select></div>
-  <div class="row2"><div class="field"><label>${esc(t("sets"))}</label><input id="exSets" type="number" inputmode="numeric" min="1" max="12" value="${def?def.defaultSets:3}"></div>
+  <div class="row2"><div class="field"><label>${esc(t("sets"))}</label><input id="exSets" type="number" inputmode="numeric" min="1" max="12" value="${def?plannedSets(def,S.selDate):3}"${def&&def.plan?" disabled":""}></div>
    <div class="field"><label>FST-7</label><label style="display:flex;align-items:center;gap:10px;height:46px;font-size:.8rem;color:var(--tx-2)"><input type="checkbox" id="exFst" ${def&&def.isFst7?"checked":""} style="width:24px;height:24px;accent-color:var(--fst)">${esc(t("fst7_hint"))}</label></div></div>
   <button class="btn gold" data-act="saveExercise" style="margin-top:8px">${esc(t("save"))}</button>
   ${exId?`<button class="btn danger" data-act="removeExercise" data-exid="${exId}" style="margin-top:10px">${esc(t("remove_ex"))}</button>`:""}`);
@@ -639,13 +874,13 @@ function saveExercise(){
  const wk=S.editing.workoutKey,exId=S.editing.exId;
  const s=ensureSession(S.selDate);
  if(exId){
-  const def=DB.program.exercises[exId];if(def){def.name={en:name,vi:name};def.muscle=muscle;def.defaultSets=sets;def.isFst7=isFst;def.restSec=rest;def.fst7=fst7;}
-  const e=s.entries.find(x=>x.exId===exId);if(e){e.name={en:name,vi:name};e.muscle=muscle;e.defaultSets=sets;e.isFst7=isFst;e.restSec=rest;e.fst7=fst7;if(!isFst)e.fstWeight=null;}
+  const def=DB.program.exercises[exId];if(def){def.name={en:name,vi:name};def.muscle=muscle;def.defaultSets=def.plan?def.defaultSets:sets;def.isFst7=isFst;def.restSec=def.plan?def.restSec:rest;def.fst7=fst7;}
+  const e=s.entries.find(x=>x.exId===exId);if(e){e.name={en:name,vi:name};e.muscle=muscle;e.defaultSets=(def&&def.plan&&!isFst)?plannedSets(def,S.selDate):sets;e.isFst7=isFst;e.restSec=(def&&def.plan)?def.restSec:rest;e.fst7=fst7;if(!isFst)e.fstWeight=null;}
  }else{
   const id="ex_c"+Date.now();
   DB.program.exercises[id]={name:{en:name,vi:name},muscle:muscle,defaultSets:sets,isFst7:isFst,restSec:rest,fst7:fst7,notes:""};
   if(DB.program.workouts[wk]&&DB.program.workouts[wk].exerciseIds.indexOf(id)<0)DB.program.workouts[wk].exerciseIds.push(id);
-  s.entries.push(makeEntry(id,DB.program.exercises[id]));
+  s.entries.push(makeEntry(id,DB.program.exercises[id],S.selDate));
   S.openEx=id;
  }
  save();closeSheet();render();
@@ -654,7 +889,9 @@ function removeExercise(exId){
  const s=ensureSession(S.selDate);const e=s.entries.find(x=>x.exId===exId);
  if(e&&e.sets.length&&!confirm(DB.settings.lang==="vi"?"Xóa bài tập này và các set đã ghi hôm nay?":"Remove this exercise and its sets logged today?"))return;
  s.entries=s.entries.filter(x=>x.exId!==exId);
- const wk=s.workoutKey;if(DB.program.workouts[wk])DB.program.workouts[wk].exerciseIds=DB.program.workouts[wk].exerciseIds.filter(x=>x!==exId);
+ // a plan exercise is only removed from this day; it comes back next week
+ const wk=s.workoutKey,pdef=DB.program.exercises[exId];
+ if(!(pdef&&pdef.plan)&&DB.program.workouts[wk])DB.program.workouts[wk].exerciseIds=DB.program.workouts[wk].exerciseIds.filter(x=>x!==exId);
  save();closeSheet();render();
 }
 function completedSessions(){
@@ -730,7 +967,7 @@ function renderSinceLast(){
  let sec=null;
  if(t0!=null){const d=Math.round((Date.now()-t0)/1000);if(d>=0&&d<=7200)sec=d;}
  const vi=DB.settings.lang==="vi";
- const target=DB.settings.restDefaultSec||90;
+ const target=lastSetRest()||DB.settings.restDefaultSec||90;
  els.forEach(el=>{
   if(sec==null){el.innerHTML="";el.classList.remove("ready");return;}
   el.innerHTML=`⏱ ${esc(vi?"Đã nghỉ":"Rested")} <b>${esc(fmtDur(sec))}</b>${sec>=target?` ${esc(vi?"· sẵn sàng":"· ready")}`:``}`;
@@ -821,6 +1058,7 @@ function render(){
  else if(S.tab==="progress")m.innerHTML=viewProgress();
  else if(S.tab==="history")m.innerHTML=viewHistory();
  else m.innerHTML=viewMission();
+ if(S.tab==="today"){const sc=$(".daypick .wchip.sel");if(sc&&sc.parentNode)sc.parentNode.scrollLeft=Math.max(0,sc.offsetLeft-sc.parentNode.offsetLeft-12);} // keep the selected workout chip in view
  if(S.tab==="progress")drawProgress();
  if(S.tab==="mission")drawMission();
  renderSinceLast();
@@ -854,12 +1092,13 @@ function cap(s){return s.charAt(0).toUpperCase()+s.slice(1);}
 function viewToday(){
  const wk=workoutKeyFor(S.selDate);
  let h="";
- h+=`<div class="phasepill">${esc(t("phase"))} ${DB.athlete.phase.index} · ${esc(tn(DB.athlete.phase.name).toUpperCase())} · APR–OCT 2026</div>`;
+ h+=planPill(S.selDate);
  h+=dateNav();
  h+=workoutPicker(wk);
  if(wk==='rest')return h+restCard();
  const s=ensureSession(S.selDate);
  const ns=sessionSets(s),vol=sessionTonnage(s);
+ h+=planBrief(wk,S.selDate);
  h+=`<div class="card raised card-pad"><div style="display:flex;justify-content:space-between;align-items:center">
    <div><div class="num" style="font-size:1.6rem;font-weight:800">${ns}</div><div class="caps">${esc(t("total_sets"))}</div></div>
    <div style="text-align:center"><div class="num" style="font-size:1.6rem;font-weight:800">${fmtInt(vol)}</div><div class="caps">${esc(t("total_vol"))} ${esc(unitLbl())}</div></div>
@@ -883,9 +1122,14 @@ function dateNav(){
  </div>${isToday?"":`<button class="minib" data-act="goToday" style="margin:0 0 12px;width:100%">↩ ${esc(t("today_btn"))}</button>`}`;
 }
 function workoutPicker(wk){
- const order=DB.program.cycle.order;
+ const order=planOrder().slice();
+ if(DB.program.plan){
+  // a day that carries an old rotation label keeps that chip, so the label is never lost by accident
+  const cs=DB.sessions[S.selDate];
+  [wk,cs&&cs.prevKey].forEach(function(k){if(k&&k!=='rest'&&order.indexOf(k)<0&&DB.program.workouts[k])order.push(k);});
+ }
  let h='<div class="daypick">';
- order.forEach(k=>{const w=DB.program.workouts[k];if(!w)return;h+=`<button class="wchip${k===wk?" sel":""}" data-act="pickWorkout" data-wk="${k}"><span class="wn">${esc(tn(w.title))}</span><span class="wc">${w.exerciseIds.length} ${esc(t("ex_short"))}</span></button>`;});
+ order.forEach(k=>{const w=DB.program.workouts[k];if(!w)return;h+=`<button class="wchip${k===wk?" sel":""}" data-act="pickWorkout" data-wk="${k}"><span class="wn">${esc(tn(w.title))}</span><span class="wc">${planDayLabel(k)?esc(planDayLabel(k))+" · ":""}${w.exerciseIds.length} ${esc(t("ex_short"))}</span></button>`;});
  h+=`<button class="wchip${wk==='rest'?" sel":""}" data-act="pickWorkout" data-wk="rest"><span class="wn">${esc(t("rest_day"))}</span><span class="wc">😴</span></button>`;
  h+='</div>';
  return h;
@@ -898,6 +1142,7 @@ function restCard(){
    <div class="field"><label>${esc(t("cardio_min"))}</label>
      <input id="cardioMin" inputmode="numeric" class="num" value="${s.cardioMin!=null?s.cardioMin:""}" placeholder="25" data-act="cardioInput"></div>
    <p class="muted" style="font-size:.75rem">💧 1 gallon water · 8h sleep · keep cortisol low for natural recovery.</p>
+   ${DB.program.plan?`<p class="muted" style="font-size:.75rem;margin-top:10px;color:var(--gold-bright)">${esc(DB.settings.lang==="vi"?"Vẫn tập hôm nay? Chạm một buổi tập ở trên: set sẽ được ghi đúng vào ngày này.":"Training today anyway? Tap a workout above: the sets are saved under this day.")}</p>`:""}
  </div>`;
 }
 function dayPicker(){
@@ -928,12 +1173,14 @@ function exerciseCard(e,ei){
      <div class="meta">
        <span class="mtag" style="background:${mc}22;color:${mc}" data-act="muscleDetail" data-m="${e.muscle}" title="${esc(DB.settings.lang==="vi"?"Xem buổi gần nhất":"See last session")}">${esc(mname(e.muscle))}</span>
        ${e.isFst7?`<span class="badge fst">FST-7</span>`:``}
-       <span>${e.sets.length}/${e.isFst7?7:(e.defaultSets||3)} sets</span>
+       <span>${e.sets.length}/${e.isFst7?7:(def.plan?plannedSets(def,S.selDate):(e.defaultSets||3))} sets</span>
+       ${def.plan?planTag(def):""}
      </div></div>
    <span class="setcount">${topLine(e)}</span>
    <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
  </div>`;
  h+=`<div class="ex-body">`;
+ if(def.plan)h+=planBox(e,def);
  // committed sets
  e.sets.forEach((st,i)=>{
   const rs=restOf(e.sets,i);
@@ -974,7 +1221,7 @@ function topLine(e){
 }
 function activeRow(e){
  const idx=e.sets.length;
- const ghost=getGhost(e.exId,idx);
+ const ghost=getGhost(e.exId,idx,e);
  const locked=e.isFst7&&e.fstWeight!=null;
  let h=`<div class="activerow">`;
  h+=`<div class="stepgrid">`;
@@ -1007,7 +1254,18 @@ function activeRow(e){
  h+=`</div>`;
  return h;
 }
-function getGhost(exId,idx){
+function getGhost(exId,idx,cur){
+ const def=DB.program.exercises[exId];
+ if(def&&def.plan){
+  // plan lifts use one weight for every hard set: today's weight carries forward, else last session's, else the start load
+  let g={w:null,r:null,unit:DB.settings.units};
+  const last=lastEntryBefore(exId,S.selDate),goUp=planGoUp(def,last,S.selDate);
+  if(last){const st=last.sets[Math.min(idx,last.sets.length-1)];g={w:st.weight,r:st.reps,unit:st.unit};}
+  if(cur&&cur.sets&&cur.sets.length){const ls=cur.sets[cur.sets.length-1];g.w=ls.weight;g.unit=ls.unit;if(g.r==null||goUp)g.r=ls.reps;}
+  else if(goUp){g.w=null;g.r=null;} // time to go up: the new weight has to be typed, never prefilled with last week's
+  else if(g.w==null&&def.plan.start!=null){g.w=def.plan.start;g.unit="lb";}
+  return g;
+ }
  const sess=completedSessions().filter(s=>s.date<S.selDate).reverse();
  for(const s of sess){
   const e=s.entries.find(x=>x.exId===exId&&x.sets.length>0);
@@ -1061,7 +1319,8 @@ function logSet(exId){
  const before=prFor(exId,null);
  const er=e1rm(w,reps);
  const ts=new Date().toISOString();
- const isPR = (w>before.maxWeight.v) || (er>before.bestE1rm.v && before.bestE1rm.v>0);
+ // the first set ever logged for a lift is a baseline, not a record
+ const isPR = before.maxWeight.v>0 && ((w>before.maxWeight.v) || (er>before.bestE1rm.v && before.bestE1rm.v>0));
  e.sets.push({i:e.sets.length+1,weight:w,unit:unit,reps:reps,rpe:rpe,done:true,isPR:isPR,e1rm:er,ts:ts});
  save();
  S.openEx=exId;
@@ -1221,7 +1480,7 @@ function drawKPIs(){
 }
 function setsStatus(cur){
  let below=0,above=0,inz=0;MUSCLES.forEach(m=>{const tg=DB.muscleTargets[m];if(!tg)return;const s=(cur.byMus[m]&&cur.byMus[m].sets)||0;if(s===0)return;if(s<tg.mev)below++;else if(s>tg.mav)above++;else inz++;});
- if(below>0)return {cls:"down",txt:below+" "+t("below")};
+ if(below>0)return {cls:DB.program.plan?"flat":"down",txt:below+" "+t("below")};
  if(above>0)return {cls:"down",txt:above+" "+t("above")};
  return {cls:"up",txt:t("in_zone")};
 }
@@ -1282,7 +1541,7 @@ function drawMev(){
  const below=rows.filter(r=>r.sets>0&&r.sets<r.mev).map(r=>r.muscle);
  const above=rows.filter(r=>r.sets>r.mav).map(r=>r.muscle);
  let msg;if(above.length)msg=(DB.settings.lang==="vi"?"Trên MAV: ":"Above MAV: ")+above.join(", ")+(DB.settings.lang==="vi"?" — cân nhắc deload.":" — consider deload.");
- else if(below.length)msg=(DB.settings.lang==="vi"?"Dưới MEV: ":"Below MEV: ")+below.join(", ")+(DB.settings.lang==="vi"?" — thêm set.":" — add sets.");
+ else if(below.length)msg=(DB.settings.lang==="vi"?"Dưới MEV: ":"Below MEV: ")+below.join(", ")+(DB.program.plan?(DB.settings.lang==="vi"?" — kế hoạch đang quyết định số set: cứ theo kế hoạch, đừng tự thêm set.":" — the plan sets the volume for now: follow it, don't add sets on top."):(DB.settings.lang==="vi"?" — thêm set.":" — add sets."));
  else msg=DB.settings.lang==="vi"?"Mọi nhóm cơ trong vùng tăng cơ. ✓":"Every trained muscle is in the growth zone. ✓";
  ins.innerHTML=msg+`<div style="margin-top:6px;color:var(--gold-bright);font-size:.75rem">👆 ${esc(DB.settings.lang==="vi"?"Chạm một nhóm cơ để xem buổi tập gần nhất của nhóm đó.":"Tap a muscle to see its latest session.")}</div>`;
 }
@@ -1316,7 +1575,7 @@ function drawHeat(){
  let streak=0;const d=new Date();
  for(let i=0;i<400;i++){const iso=d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());const rest=workoutKeyFor(iso)==='rest';
    if(map[iso])streak++;else if(rest){/*rest day doesn't break streak*/}else if(i>0)break; d.setDate(d.getDate()-1);}
- ins.innerHTML=DB.settings.lang==="vi"?`Chuỗi hiện tại: <b>${streak} ${esc(t("streak"))}</b>. Lịch 3 tập / 1 nghỉ.`:`Current streak: <b>${streak} ${esc(t("streak"))}</b>. 3 on / 1 off rotation.`;
+ ins.innerHTML=DB.settings.lang==="vi"?`Chuỗi hiện tại: <b>${streak} ${esc(t("streak"))}</b>. ${DB.program.plan?"Kế hoạch tuần: 5 buổi tập, nghỉ T4 và CN.":"Lịch 3 tập / 1 nghỉ."}`:`Current streak: <b>${streak} ${esc(t("streak"))}</b>. ${DB.program.plan?"Weekly plan: 5 training days, Wed and Sun off.":"3 on / 1 off rotation."}`;
 }
 
 /* ---------- CHART PRIMITIVES (hand-rolled SVG) ---------- */
@@ -1465,8 +1724,8 @@ function viewMission(){
  // PR wall
  h+=`<div class="card card-pad"><div class="caps" style="margin-bottom:8px">${esc(t("pr_wall"))}</div><div class="prwall">${prWallHTML()}</div></div>`;
  // rotation reference
- h+=`<div class="card card-pad"><div class="caps" style="margin-bottom:8px">${esc(t("cycle_label"))}</div>`;
- DB.program.cycle.order.forEach((k,i)=>{const w=DB.program.workouts[k];if(!w)return;h+=`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line-soft);font-size:.875rem"><span style="color:var(--gold-bright);font-weight:700;width:24px">${i+1}</span><span style="flex:1">${esc(tn(w.title))}</span><span class="num" style="color:var(--tx-3)">${w.exerciseIds.length} ${esc(t("ex_short"))}</span></div>`;});
+ h+=`<div class="card card-pad"><div class="caps" style="margin-bottom:8px">${esc(DB.program.plan?(DB.settings.lang==="vi"?"Kế hoạch tuần":"Weekly plan"):t("cycle_label"))}</div>`;
+ planOrder().forEach((k,i)=>{const w=DB.program.workouts[k];if(!w)return;h+=`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line-soft);font-size:.875rem"><span style="color:var(--gold-bright);font-weight:700;width:${planDayLabel(k)?44:24}px">${esc(planDayLabel(k)||String(i+1))}</span><span style="flex:1">${esc(tn(w.title))}</span><span class="num" style="color:var(--tx-3)">${w.exerciseIds.length} ${esc(t("ex_short"))}</span></div>`;});
  h+=`<div style="display:flex;justify-content:space-between;padding:7px 0;font-size:.875rem"><span style="width:24px;color:var(--tx-3)">○</span><span style="flex:1;color:var(--tx-3)">${esc(t("rest_day"))}</span><span class="num" style="color:var(--tx-3)">😴</span></div>`;
  h+=`</div>`;
  // settings
@@ -1538,7 +1797,7 @@ function handleImport(file){
    if(!obj||!obj.program||!obj.sessions){toast(DB.settings.lang==="vi"?"File không hợp lệ":"Invalid backup file");return;}
    const nSess=Object.keys(obj.sessions).length;
    if(confirm((DB.settings.lang==="vi"?"Nhập "+nSess+" buổi tập? Sẽ THAY THẾ dữ liệu hiện tại (đã tạo bản sao lưu).":"Import "+nSess+" sessions? This REPLACES current data (a backup is kept)."))){
-     try{localStorage.setItem(KEY+".bak."+Date.now(),JSON.stringify(DB));}catch(_){}
+     if(!backupCurrent()&&!confirm(DB.settings.lang==="vi"?"Không lưu được bản sao an toàn của dữ liệu hiện tại (bộ nhớ đầy). Vẫn nhập?":"Couldn't keep a safety copy of your current data (storage is full). Import anyway?"))return;
      DB=migrate(obj);persist(true);render();toast(DB.settings.lang==="vi"?"Đã nhập dữ liệu":"Data imported");
    }
  }catch(e){toast(DB.settings.lang==="vi"?"Không đọc được file":"Couldn't read file");}};
@@ -1586,7 +1845,7 @@ function restoreSnapshot(k){
   if(!raw){toast(vi?"Không tìm thấy bản sao":"Snapshot not found");return;}
   const o=JSON.parse(raw);
   if(!confirm(vi?"Khôi phục bản này? Dữ liệu hiện tại sẽ được sao lưu trước.":"Restore this snapshot? Your current data is backed up first."))return;
-  try{localStorage.setItem(KEY+".bak."+Date.now(),JSON.stringify(DB));}catch(_){}
+  if(!backupCurrent()&&!confirm(vi?"Không lưu được bản sao an toàn của dữ liệu hiện tại (bộ nhớ đầy). Vẫn khôi phục?":"Couldn't keep a safety copy of your current data (storage is full). Restore anyway?"))return;
   DB=migrate(o);persist(true);closeSheet();render();
   toast(vi?"Đã khôi phục dữ liệu":"Data restored");
  }catch(e){toast(vi?"Không khôi phục được":"Restore failed");}
