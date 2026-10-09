@@ -1,7 +1,7 @@
 /* FORGE service worker — offline shell.
    Strategy: network-first for the page (so updates always land),
    cache-first + background refresh for static assets. */
-const VERSION = 'forge-2026-10-08-1';
+const VERSION = 'forge-2026-10-08-2';
 const CORE = [
   './',
   './manifest.webmanifest',
