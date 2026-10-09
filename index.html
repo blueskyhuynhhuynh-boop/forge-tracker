@@ -342,6 +342,34 @@ svg [data-act]{cursor:pointer}
 .planbox .pl4.up{color:var(--up);font-weight:700}
 .card.brief{padding:10px 14px;font-size:.75rem;color:var(--tx-2);line-height:1.5}
 .card.brief div+div{margin-top:3px}
+
+/* ---------- HISTORY SEARCH ---------- */
+.hsearch{position:relative;margin-bottom:var(--s2)}
+.hsearch input{width:100%;height:48px;background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r-md);padding:0 46px 0 40px;font-size:16px;font-family:var(--ui);color:var(--tx-1);-webkit-appearance:none;appearance:none}
+.hsearch input:focus{outline:none;border-color:var(--gold)}
+.hsearch input::-webkit-search-cancel-button{-webkit-appearance:none;display:none}
+.hsearch .ic{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:.875rem;pointer-events:none;opacity:.7}
+.hsearch .hs-x{position:absolute;right:6px;top:6px;width:36px;height:36px;border-radius:8px;color:var(--tx-3);font-size:.875rem}
+.hsearch .hs-x[hidden]{display:none}
+.hchips{display:flex;gap:var(--s2);overflow-x:auto;padding:2px 0 var(--s2);scrollbar-width:none}
+.hchips::-webkit-scrollbar{display:none}
+.hres{padding:var(--s3) var(--s4);cursor:pointer}
+.hres .hr-top{display:flex;align-items:center;gap:8px}
+.hres .hr-name{flex:1;min-width:0;font-size:1rem;font-weight:800;letter-spacing:-.01em}
+.hres .hr-sub{font-size:.6875rem;color:var(--tx-3);margin:2px 0 var(--s2) 16px}
+.hres .hr-row{display:flex;gap:var(--s3);padding:5px 0;border-top:1px solid var(--line-soft);font-size:.8125rem}
+.hres .hr-row .k{flex:0 0 84px;color:var(--tx-3);font-size:.6875rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600;padding-top:2px}
+.hres .hr-row .v{flex:1;min-width:0;font-family:var(--mono);color:var(--tx-2);overflow-wrap:anywhere}
+.hres .hr-row .v b{color:var(--tx-1)}
+.hres .hr-more{text-align:right;font-size:.6875rem;color:var(--gold-bright);font-weight:700;padding-top:6px;border-top:1px solid var(--line-soft)}
+.hres .hr-names{border-top:1px solid var(--line-soft);padding:6px 0 2px}
+.hres .hr-nh{font-size:.625rem;color:var(--tx-3);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:2px}
+.hres .hr-nm{display:flex;flex-direction:column;padding:3px 0;font-size:.75rem}
+.hres .hr-nm .n{color:var(--tx-1);font-weight:700}
+.hres .hr-nm .d{font-family:var(--mono);color:var(--tx-2);overflow-wrap:anywhere}
+.hr-note{font-size:.75rem;color:var(--tx-3);text-align:center;padding:2px 0 var(--s3)}
+.sess .elist .e.hit{color:var(--gold-bright);font-weight:700}
+.sess .elist .e.hit .v{color:var(--gold-bright)}
 </style>
 </head>
 <body>
@@ -1045,7 +1073,7 @@ function muscleSheetHTML(m){
 function openMuscleSheet(m){if(!m||MUSCLES.indexOf(m)<0)return;S.sheet="muscle";openSheet(muscleSheetHTML(m));vibrate(8);}
 
 /* ---------- UI STATE ---------- */
-const S={tab:"today",date:todayISO(),selDate:todayISO(),openEx:null,statsRange:"12w",statsExId:null,rest:{endsAt:0,dur:0,running:false},sheet:null,editing:null};
+const S={tab:"today",date:todayISO(),selDate:todayISO(),openEx:null,statsRange:"12w",statsExId:null,rest:{endsAt:0,dur:0,running:false},sheet:null,editing:null,histQ:""};
 let appToday=todayISO();
 
 /* ---------- RENDER ROOT ---------- */
@@ -1678,24 +1706,265 @@ function heatmap(map){
 
 /* ---------- HISTORY ---------- */
 function viewHistory(){
- const done=completedSessions().slice().reverse();
+ HIST_GROUPS=null;HIST_SESS=null;HIST_FOUND=null; // rebuilt once per render, then reused while typing
+ const vi=DB.settings.lang==="vi";
  let h=`<h1 class="screen-title">${esc(t("tab_history"))}</h1>`;
- if(done.length===0)return h+`<div class="card"><div class="empty"><div class="big">📅</div>${esc(t("log_first"))}</div></div>`;
+ if(completedSessions().length===0)return h+`<div class="card"><div class="empty"><div class="big">📅</div>${esc(t("log_first"))}</div></div>`;
+ h+=`<div class="hsearch"><span class="ic">🔎</span><input id="histQ" type="search" enterkeyhint="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="${esc(vi?"Tìm bài tập: incline, curl, squat…":"Search an exercise: incline, curl, squat…")}" value="${esc(S.histQ||"")}"><button class="hs-x" data-act="histClear" aria-label="${esc(vi?"Xóa":"Clear")}"${S.histQ?"":" hidden"}>✕</button></div>`;
+ return h+`<div id="histBody">${histBodyHTML()}</div>`;
+}
+/* ---------- HISTORY SEARCH (read-only: it never writes to the log) ---------- */
+let HIST_GROUPS=null,HIST_SESS=null,HIST_FOUND=null;
+// accent marks and the Vietnamese d-bar, built from character codes so this source line stays plain ASCII
+const HIST_MARKS=new RegExp("["+String.fromCharCode(0x300)+"-"+String.fromCharCode(0x36f)+"]","g"),HIST_DBAR=new RegExp(String.fromCharCode(0x111),"g");
+function histGroups(){if(!HIST_GROUPS)HIST_GROUPS=exerciseGroups();return HIST_GROUPS;}
+function histSessions(){if(!HIST_SESS)HIST_SESS=completedSessions();return HIST_SESS;} // oldest first
+function histTokens(s){return String(s||"").toLowerCase().normalize("NFD").replace(HIST_MARKS,"").replace(HIST_DBAR,"d").replace(/[^a-z0-9]+/g," ").trim().split(" ").filter(Boolean);}
+function histEdit1(a,b){
+ // one typo: a wrong, missing or extra letter, or two neighbouring letters swapped
+ const la=a.length,lb=b.length;
+ if(Math.abs(la-lb)>1)return false;
+ let i=0;while(i<la&&i<lb&&a.charAt(i)===b.charAt(i))i++;
+ if(i===la&&i===lb)return true;
+ if(la===lb)return a.slice(i+1)===b.slice(i+1)||(a.charAt(i)===b.charAt(i+1)&&a.charAt(i+1)===b.charAt(i)&&a.slice(i+2)===b.slice(i+2));
+ return la>lb?a.slice(i+1)===b.slice(i):a.slice(i)===b.slice(i+1);
+}
+function histLev(a,b,max){
+ // edit distance, giving up early once it is above max
+ if(Math.abs(a.length-b.length)>max)return max+1;
+ let prev=[];for(let j=0;j<=b.length;j++)prev[j]=j;
+ for(let i=1;i<=a.length;i++){
+  const cur=[i];let mn=i;
+  for(let j=1;j<=b.length;j++){cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a.charAt(i-1)===b.charAt(j-1)?0:1));if(cur[j]<mn)mn=cur[j];}
+  if(mn>max)return max+1;
+  prev=cur;
+ }
+ return prev[b.length];
+}
+function histTypoSame(a,b){
+ // true when two names are the same lift typed differently (capitals, spacing, a slip of 1-2 letters).
+ // false for a different machine: "Incline machine" / "Decline machine", "Hip Abductor" / "Hip Adductor", "Seated Row" / "Seated Cable Row".
+ const ta=histTokens(a),tb=histTokens(b);
+ if(ta.join("")===tb.join(""))return true;
+ if(ta.length!==tb.length)return histLev(ta.join(""),tb.join(""),1)<=1;
+ const sa=ta.slice().sort(),sb=tb.slice().sort();
+ for(let i=0;i<sa.length;i++){
+  const x=sa[i],y=sb[i];
+  if(x===y)continue;
+  if(x.slice(0,2)!==y.slice(0,2)||Math.min(x.length,y.length)<4||histLev(x,y,2)>2)return false;
+ }
+ return true;
+}
+function histNameScore(name,qt){
+ // every typed word must match a word of this name. direct = the word, its start, its plural, or a piece inside it;
+ // one typo is forgiven on words of 4+ letters (a typo match is only shown when nothing matches directly)
+ const words=histTokens(name);if(!words.length)return null;
+ const joined=words.join("");
+ let score=0,fuzzy=false;
+ for(let i=0;i<qt.length;i++){
+  const q=qt[i];let best=0;
+  for(let j=0;j<words.length;j++){
+   const w=words[j];let v=0;
+   if(w===q)v=4;
+   else if(w.indexOf(q)===0||(q.length>=3&&(q===w+"s"||q===w+"es")))v=3;
+   else if(q.length>=3&&w.indexOf(q)>0)v=2;
+   if(v>best)best=v;
+  }
+  if(!best&&q.length>=3){
+   // "pulldown" finds "pull-down": the typed word starts at a word of the name and runs on into the next one
+   let off=0;
+   for(let j=0;j<words.length&&!best;j++){if(q.length>words[j].length&&joined.indexOf(q,off)===off)best=2;off+=words[j].length;}
+  }
+  if(!best&&q.length>=4){
+   for(let j=0;j<words.length;j++){
+    const w=words[j];
+    if(w.length>=3&&w.charAt(0)===q.charAt(0)&&(histEdit1(q,w)||histEdit1(q,w.slice(0,q.length))||diceSim(q,w)>=0.6||diceSim(q,w.slice(0,q.length+1))>=0.6)){best=1;fuzzy=true;break;}
+   }
+  }
+  if(!best)return null;
+  score+=best;
+ }
+ if(!fuzzy&&words.length===qt.length&&score===4*qt.length)score+=1; // the whole name was typed: rank it above longer names that contain it
+ return {score:score,fuzzy:fuzzy};
+}
+function histSearch(q){
+ // returns [{g, names, ids:{exId:1}, tier, score, last}], best first. tier 2 = name match, 1 = muscle match, 0 = typo match.
+ // one card per real lift: look-alike names that are different machines get their own cards
+ const qt=histTokens(q);if(!qt.length)return [];
+ const res=[];
+ histGroups().forEach(function(g){
+  const hits={};let best=-1;
+  g.names.forEach(function(n){const r=histNameScore(n,qt);if(!r)return;hits[n]={tier:r.fuzzy?0:2,score:r.score};if(hits[n].tier>best)best=hits[n].tier;});
+  const M=MNAME[g.muscle],mus=histTokens(M?M.en+" "+M.vi:"").concat(histTokens(g.muscle));
+  const musOK=qt.every(function(x){return mus.some(function(w){return w.indexOf(x)===0;});});
+  const cand=[];
+  g.names.forEach(function(n){
+   const h=hits[n];
+   if(h&&h.tier===2)cand.push({n:n,tier:2,score:h.score});
+   else if(musOK)cand.push({n:n,tier:1,score:0});
+   else if(h&&best===0)cand.push({n:n,tier:0,score:h.score});
+  });
+  if(!cand.length)return;
+  // two names are one lift when they are the same words typed differently, or the same exercise that was renamed
+  const same=function(m,n){return histTypoSame(m,n)||g.ids.some(function(id){const a=g.idNames[id];return a.indexOf(m)>-1&&a.indexOf(n)>-1;});};
+  const cl=[],used=[];
+  cand.forEach(function(h){
+   let c=null;
+   for(let i=0;i<cl.length&&!c;i++){if(cl[i].names.some(function(m){return same(m,h.n);}))c=cl[i];}
+   if(!c){c={names:[],tier:h.tier,score:0};cl.push(c);}
+   c.names.push(h.n);used.push(h.n);
+   if(h.tier>c.tier)c.tier=h.tier;
+   if(h.score>c.score)c.score=h.score;
+  });
+  cl.forEach(function(c){
+   g.names.forEach(function(n){if(used.indexOf(n)<0&&c.names.some(function(m){return same(m,n);})){c.names.push(n);used.push(n);}});
+   const ids={},names=[];let last="";
+   g.ids.forEach(function(id){
+    if(!g.idNames[id].some(function(n){return c.names.indexOf(n)>-1;}))return;
+    ids[id]=1;if(g.idLast[id]>last)last=g.idLast[id];
+    g.idNames[id].forEach(function(n){if(names.indexOf(n)<0)names.push(n);});
+   });
+   res.push({g:g,names:names,ids:ids,tier:c.tier,score:c.score,last:last});
+  });
+ });
+ // typo matches are a fallback: show them only when nothing matched properly
+ const proper=res.filter(function(r){return r.tier>0;});
+ return (proper.length?proper:res).sort(function(a,b){return b.tier-a.tier||b.score-a.score||(a.last<b.last?1:(a.last>b.last?-1:0))||b.g.sessions-a.g.sessions;});
+}
+function histStats(ids){
+ // every training day that holds one of these exercise ids: all its sets and its top set. builds new arrays only.
+ const days=[];let n=0;
+ histSessions().forEach(function(s){
+  let sets=[];const names=[];
+  s.entries.forEach(function(e){
+   if(!ids[e.exId]||!e.sets||!e.sets.length)return;
+   sets=sets.concat(e.sets);
+   const nm=tn(e.name)||e.exId;if(names.indexOf(nm)<0)names.push(nm);
+  });
+  if(!sets.length)return;
+  let top=null;
+  sets.forEach(function(st){const w=toDisp(st.weight,st.unit),er=e1rm(w,st.reps);if(!top||er>top.e1rm||(er===top.e1rm&&st.reps>top.reps))top={weight:w,reps:st.reps,e1rm:er};});
+  n+=sets.length;days.push({date:s.date,sets:sets,top:top,names:names});
+ });
+ return {days:days,sets:n};
+}
+function histSetsText(sets){
+ if(!sets.length)return "-";
+ const w0=toDisp(sets[0].weight,sets[0].unit);
+ const same=sets.every(function(st){return Math.abs(toDisp(st.weight,st.unit)-w0)<0.001;});
+ return same?(fmtN(w0)+" "+unitLbl()+" × "+sets.map(function(st){return st.reps;}).join(", "))
+            :sets.map(function(st){return fmtN(toDisp(st.weight,st.unit))+"×"+st.reps;}).join(" · ");
+}
+function histAgo(date){
+ const vi=DB.settings.lang==="vi",d=daysAgo(date);
+ if(d<0)return "";
+ if(d===0)return vi?"hôm nay":"today";
+ if(d===1)return vi?"hôm qua":"yesterday";
+ return vi?(d+" ngày trước"):(d+" days ago");
+}
+function histCard(r,i){
+ const g=r.g,vi=DB.settings.lang==="vi",col=MCOLOR[g.muscle]||"var(--gold)",u=unitLbl();
+ const st=histStats(r.ids),days=st.days;
+ if(!days.length)return "";
+ const last=days[days.length-1],prev=days.length>1?days[days.length-2]:null;
+ let best=days[0];days.forEach(function(d){if(d.top.e1rm>best.top.e1rm||(d.top.e1rm===best.top.e1rm&&d.top.reps>best.top.reps))best=d;});
+ const pct=prev&&prev.top.e1rm>0?((last.top.e1rm-prev.top.e1rm)/prev.top.e1rm*100):null;
+ const ago=histAgo(last.date);
+ const row=function(k,v){return `<div class="hr-row"><span class="k">${esc(k)}</span><span class="v">${v}</span></div>`;};
+ let h=`<div class="card hres" data-act="histOpen" data-i="${i}">`;
+ h+=`<div class="hr-top"><span class="scan-dot" style="background:${col}"></span><span class="hr-name">${esc(last.names[0])}</span></div>`;
+ h+=`<div class="hr-sub">${esc(mname(g.muscle))} · ${days.length} ${esc(vi?"buổi":(days.length===1?"session":"sessions"))} · ${st.sets} ${esc(vi?"set":(st.sets===1?"set":"sets"))}</div>`;
+ h+=row(vi?"Lần cuối":"Last time",`<b>${esc(fmtDate(last.date))}</b>${ago?" · "+esc(ago):""}`);
+ h+=row(last.sets.length+" "+(vi?"set":(last.sets.length===1?"set":"sets")),`<b>${esc(histSetsText(last.sets))}</b>`);
+ let trend="";
+ if(pct!=null){const c=pct>1?"up":(pct<-1?"down":"flat");trend=`<br><span class="mdet-trend ${c}">${pct>0?"+":""}${pct.toFixed(0)}% ${esc(vi?"so với lần trước đó":"vs the time before")}</span>`;}
+ h+=row(vi?"Set mạnh nhất":"Top set",`${fmtN(last.top.weight)} ${esc(u)} × ${last.top.reps} · e1RM <b>${fmtN(last.top.e1rm)}</b>${trend}`);
+ if(prev)h+=row(vi?"Lần trước đó":"Time before",`${esc(fmtDate(prev.date))}: ${fmtN(prev.top.weight)} × ${prev.top.reps} · e1RM ${fmtN(prev.top.e1rm)}`);
+ h+=row(vi?"Tốt nhất":"Best ever",`${fmtN(best.top.weight)} ${esc(u)} × ${best.top.reps} · e1RM ${fmtN(best.top.e1rm)} · ${esc(fmtDate(best.date))}`);
+ if(r.names.length>1)h+=row(vi?"Gồm các tên":"Counts",esc(r.names.join(" · ")));
+ const others=g.names.filter(function(n){return r.names.indexOf(n)<0;});
+ if(others.length){
+  // look-alike names are NOT counted above: show each one's own latest day, so two different machines are never mixed up
+  const per={};
+  others.forEach(function(n){const one={};g.ids.forEach(function(id){if(g.idNames[id].indexOf(n)>-1)one[id]=1;});const d=histStats(one).days;if(d.length)per[n]=d[d.length-1];});
+  const names=Object.keys(per).sort(function(a,b){return per[a].date<per[b].date?1:(per[a].date>per[b].date?-1:0);});
+  const MAXN=5;
+  if(names.length){
+   h+=`<div class="hr-names"><div class="hr-nh">${esc(vi?"Tên gần giống trong nhật ký (không tính ở trên)":"Similar names in your log (not counted above)")}</div>`;
+   names.slice(0,MAXN).forEach(function(n){h+=`<div class="hr-nm"><span class="n">${esc(n)}</span><span class="d">${esc(fmtDate(per[n].date))} · ${esc(histSetsText(per[n].sets))}</span></div>`;});
+   if(names.length>MAXN)h+=`<div class="hr-nm"><span class="d">+${names.length-MAXN} ${esc(vi?"tên khác":"more")}</span></div>`;
+   h+=`</div>`;
+  }
+ }
+ h+=`<div class="hr-more">${esc(vi?"Chạm để xem mọi buổi ›":"Tap for every session ›")}</div></div>`;
+ return h;
+}
+function openHistSheet(i){
+ // every session of one search result, newest first, with all the sets of that day
+ const r=HIST_FOUND&&HIST_FOUND[i];if(!r)return;
+ const g=r.g,vi=DB.settings.lang==="vi",col=MCOLOR[g.muscle]||"var(--gold)",days=histStats(r.ids).days;
+ if(!days.length)return;
+ let h='<div class="mdet-head"><span class="mdet-dot" style="background:'+col+'"></span><h3 style="margin:0">'+esc(days[days.length-1].names[0])+'</h3></div>';
+ h+='<div class="mdet-sub">'+esc(mname(g.muscle))+' · '+days.length+' '+esc(vi?"buổi":(days.length===1?"session":"sessions"))+'</div>';
+ if(r.names.length>1)h+='<div class="scan-var">'+esc(vi?"Gồm các tên:":"Counts these names:")+' <b>'+r.names.map(esc).join('</b>, <b>')+'</b></div>';
+ h+='<div class="caps" style="margin-top:var(--s4)">'+esc(vi?"Từng buổi (mọi set)":"Every session (all sets)")+'</div>';
+ days.slice().reverse().forEach(function(d,k,arr){
+  const p=arr[k+1];let dv='';
+  if(p&&p.top.e1rm>0){const x=(d.top.e1rm-p.top.e1rm)/p.top.e1rm*100,c=x>1?"up":(x<-1?"down":"flat");dv=' <span class="mdet-trend '+c+'">'+(x>0?"+":"")+x.toFixed(0)+'%</span>';}
+  h+='<div class="mdet-hist"><span class="d" style="flex:none">'+esc(fmtDate(d.date))+'</span><span class="n" style="text-align:right">'+esc(histSetsText(d.sets))+'<br>e1RM '+fmtN(d.top.e1rm)+dv+'</span></div>';
+ });
+ S.sheet="hist";openSheet(h);vibrate(8);
+}
+function histBodyHTML(){
+ const vi=DB.settings.lang==="vi",q=(S.histQ||"").trim();
+ HIST_FOUND=null;
+ if(!q){
+  // quick picks: the lifts trained most recently
+  const recent=histGroups().slice().sort(function(a,b){const la=a.pts[a.pts.length-1].date,lb=b.pts[b.pts.length-1].date;return la<lb?1:(la>lb?-1:b.sessions-a.sessions);}).slice(0,10);
+  let h=`<div class="hchips">`;
+  recent.forEach(function(g){h+=`<button class="chip" data-act="histPick" data-q="${esc(g.name)}">${esc(g.name)}</button>`;});
+  return h+`</div>`+histListHTML();
+ }
+ const found=histSearch(q);
+ HIST_FOUND=found;
+ if(!found.length)return `<div class="card"><div class="empty">${esc(vi?"Không có bài tập nào khớp. Thử một từ ngắn hơn.":"No exercise matches. Try a shorter word.")}</div></div>`+
+  `<div class="hr-note">${esc(vi?"Nhật ký của bạn vẫn còn nguyên: xóa ô tìm kiếm để xem lại tất cả.":"Your log is still all here: clear the search to see everything.")}</div>`;
+ const MAXG=12,MAXS=30;
+ let h="";
+ if(found[0].tier===0)h+=`<div class="hr-note">${esc(vi?"Không có tên khớp chính xác. Đây là các tên gần giống:":"No exact name. Closest spellings:")}</div>`;
+ found.slice(0,MAXG).forEach(function(r,i){h+=histCard(r,i);});
+ if(found.length>MAXG)h+=`<div class="hr-note">${esc(vi?("Còn "+(found.length-MAXG)+" bài nữa. Gõ thêm chữ để thu hẹp."):((found.length-MAXG)+" more match. Type more letters to narrow it."))}</div>`;
+ const ids={};found.forEach(function(r){Object.keys(r.ids).forEach(function(id){ids[id]=1;});});
+ const sess=histSessions().filter(function(s){return s.entries.some(function(e){return ids[e.exId]&&e.sets&&e.sets.length;});}).reverse();
+ h+=`<div class="weekhdr"><span class="wk">${esc(vi?"Các buổi có bài này":"Sessions with it")}</span><span class="wk">${sess.length}</span></div>`;
+ sess.slice(0,MAXS).forEach(function(s){h+=sessionCard(s,ids);});
+ if(sess.length>MAXS)h+=`<div class="hr-note">${esc(vi?("Hiện "+MAXS+" buổi gần nhất."):("Showing the newest "+MAXS+" sessions."))}</div>`;
+ return h;
+}
+function histRefresh(){
+ const b=$("#histBody");if(b)b.innerHTML=histBodyHTML();
+ const x=$(".hsearch .hs-x");if(x)x.hidden=!S.histQ;
+ updateJumpBtn();
+}
+function histListHTML(){
+ // the full log, newest first, grouped by week
+ const done=completedSessions().slice().reverse();
+ let h="";
  let curWk=null;
  done.forEach(s=>{const wk=weekKey(s.date);if(wk!==curWk){curWk=wk;const ws=weekStats(wk);let tot=0;Object.values(ws.byMus).forEach(m=>tot+=m.tonnage);
    h+=`<div class="weekhdr"><span class="wk">${esc(wk)}</span><span class="wk">${ws.trainedDays}d · ${fmtInt(tot)} ${esc(unitLbl())}</span></div>`;}
   h+=sessionCard(s);});
  return h;
 }
-function sessionCard(s){
+function sessionCard(s,hit){
  const wk=s.workoutKey;
  const day=wk==='rest'?{title:{en:t("rest_day"),vi:t("rest_day")}}:(DB.program.workouts[wk]||{title:{en:wk||"?",vi:wk||"?"}});
  let h=`<div class="card sess"><div class="sh"><div><div class="dt">${esc(fmtDate(s.date))}</div><div class="dk">${esc(tn(day.title))}</div></div>
-   <button class="del" data-act="delSession" data-date="${s.date}" style="width:34px;height:34px;border-radius:8px;color:var(--tx-3)">✕</button></div>`;
+   ${hit?"":`<button class="del" data-act="delSession" data-date="${s.date}" style="width:34px;height:34px;border-radius:8px;color:var(--tx-3)">✕</button>`}</div>`;
  h+=`<div class="stats"><span><b>${sessionSets(s)}</b> ${esc(t("total_sets"))}</span><span><b>${fmtInt(sessionTonnage(s))}</b> ${esc(unitLbl())}</span></div>`;
  h+=`<div class="elist">`;
  s.entries.filter(e=>e.sets.length).forEach(e=>{let best=0,bw=0,br=0;e.sets.forEach(st=>{const er=e1rm(toDisp(st.weight,st.unit),st.reps);if(er>best){best=er;bw=toDisp(st.weight,st.unit);br=st.reps;}});
-   h+=`<div class="e"><span>${esc(tn(e.name))} ${e.isFst7?'<span class="badge fst">7</span>':''}</span><span class="v">${e.sets.length}× · ${fmtN(bw)}×${br}</span></div>`;});
+   h+=`<div class="e${hit&&hit[e.exId]?" hit":""}"><span>${esc(tn(e.name))} ${e.isFst7?'<span class="badge fst">7</span>':''}</span><span class="v">${e.sets.length}× · ${fmtN(bw)}×${br}</span></div>`;});
  h+=`</div></div>`;
  return h;
 }
@@ -1913,13 +2182,19 @@ document.addEventListener("click",e=>{
   case"toggleCheck":{const s=ensureSession(S.selDate);s.checks=s.checks||{};s.checks[a.dataset.key]=!s.checks[a.dataset.key];save();render();}break;
   case"muscleDetail":openMuscleSheet(a.dataset.m);break;
   case"jumpScroll":jumpScroll();break;
-  case"scanVariants":openScanSheet(a.dataset.k);break;
+  case"scanVariants":openScanSheet(a.dataset.k,a.dataset.m);break;
+  case"histOpen":openHistSheet(+a.dataset.i);break;
+  case"histClear":{S.histQ="";const i=$("#histQ");if(i){i.value="";i.focus();}histRefresh();}break;
+  case"histPick":{S.histQ=a.dataset.q||"";const i=$("#histQ");if(i)i.value=S.histQ;histRefresh();window.scrollTo({top:0,behavior:"auto"});}break;
   case"openRecover":openRecoverSheet();break;
   case"restoreSnap":restoreSnapshot(a.dataset.k);break;
  }
 });
-$$("#tabbar button").forEach(b=>b.addEventListener("click",()=>{S.tab=b.dataset.tab;DB.meta.lastTab=S.tab;save();render();}));
+$$("#tabbar button").forEach(b=>b.addEventListener("click",()=>{S.tab=b.dataset.tab;S.histQ="";DB.meta.lastTab=S.tab;save();render();}));
 
+// History search: refresh only the results, so the keyboard stays open while typing
+document.addEventListener("input",e=>{if(e.target&&e.target.id==="histQ"){S.histQ=e.target.value;histRefresh();}});
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target&&e.target.id==="histQ")e.target.blur();});
 // input handlers (delegated) for settings & numeric live-edit
 document.addEventListener("change",e=>{
  const a=e.target.closest("[data-act]");if(!a)return;
@@ -1982,7 +2257,8 @@ function exerciseGroups(){
     if(er>top){top=er;topW=w;topR=st.reps;}
    });
    const nm=tn(e.name)||e.exId;
-   if(!byId[e.exId])byId[e.exId]={name:nm,muscle:e.muscle,norm:normName(nm),pts:[],sets:0};
+   if(!byId[e.exId])byId[e.exId]={name:nm,all:[],muscle:e.muscle,norm:normName(nm),pts:[],sets:0};
+   if(byId[e.exId].all.indexOf(nm)<0)byId[e.exId].all.push(nm);
    byId[e.exId].pts.push({date:sess.date,e1rm:top,weight:topW,reps:topR,name:nm});
    byId[e.exId].sets+=e.sets.length;
   });
@@ -1993,8 +2269,9 @@ function exerciseGroups(){
   for(let i=0;i<groups.length;i++){
    if(groups[i].muscle===it.muscle&&sameExercise(groups[i].norm,it.norm)){g=groups[i];break;}
   }
-  if(!g){g={norm:it.norm,muscle:it.muscle,names:[],pts:[],sets:0};groups.push(g);}
-  if(g.names.indexOf(it.name)<0)g.names.push(it.name);
+  if(!g){g={norm:it.norm,muscle:it.muscle,names:[],ids:[],idNames:{},idLast:{},pts:[],sets:0};groups.push(g);}
+  g.ids.push(id);g.idNames[id]=it.all;g.idLast[id]=it.pts[it.pts.length-1].date;
+  it.all.forEach(function(n){if(g.names.indexOf(n)<0)g.names.push(n);});
   g.pts=g.pts.concat(it.pts);g.sets+=it.sets;
  });
  groups.forEach(function(g){
@@ -2083,9 +2360,9 @@ function drawScan(){
      ?("Đã gộp "+merged+" bài bị gõ sai tên khác nhau.")
      :(merged+" lifts had spelling variants and were merged automatically."))+'</div>'):'');
 }
-function openScanSheet(k){
+function openScanSheet(k,m){
  const vi=DB.settings.lang==="vi";
- const g=exerciseGroups().filter(function(x){return x.norm===k;})[0];
+ const g=exerciseGroups().filter(function(x){return x.norm===k&&(!m||x.muscle===m);})[0];
  if(!g)return;
  const col=MCOLOR[g.muscle]||"var(--gold)";
  let h='<div class="mdet-head"><span class="mdet-dot" style="background:'+col+'"></span><h3 style="margin:0">'+esc(g.name)+'</h3></div>';
