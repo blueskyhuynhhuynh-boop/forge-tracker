@@ -12,8 +12,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="FORGE">
 <meta name="description" content="Offline workout tracker: sets, reps, rest periods and strength by muscle group.">
-<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/ox-apple-touch.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/ox-192.png">
 <style>
 :root{
   --bg-0:#0A0B0D; --bg-1:#121417; --bg-2:#181B20; --bg-3:#1F232A;
@@ -45,6 +45,7 @@ button:focus-visible,.daychip:focus-visible,.chip:focus-visible,input:focus-visi
 /* HEADER */
 header.app{position:sticky;top:0;z-index:40;background:rgba(10,11,13,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line-soft)}
 .hbar{display:flex;align-items:center;gap:var(--s3);padding:10px var(--s4) 8px}
+.hlogo{width:34px;height:34px;border-radius:9px;flex:none;display:block}
 .htitle{flex:1;min-width:0}
 .htitle .day{font-size:.9375rem;font-weight:700;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .htitle .sub{font-size:.75rem;color:var(--tx-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -344,6 +345,12 @@ svg [data-act]{cursor:pointer}
 .card.brief{padding:10px 14px;font-size:.75rem;color:var(--tx-2);line-height:1.5}
 .card.brief div+div{margin-top:3px}
 
+/* ---------- LOGO + MOTTO ---------- */
+.motto{display:flex;align-items:center;gap:var(--s4)}
+.motto img{width:56px;height:56px;border-radius:14px;flex:none;display:block}
+.motto .mt{font-size:1.375rem;font-weight:900;letter-spacing:.14em;color:var(--gold-bright);line-height:1.1}
+.motto .ms{font-size:.8125rem;color:var(--tx-2);margin-top:3px}
+
 /* ---------- LAST TIME + PR ON A CARD ---------- */
 .recbox{background:var(--bg-1);border:1px solid var(--gold-wash);border-radius:var(--r-md);padding:6px 12px;margin:4px 0 10px;font-size:.8125rem;line-height:1.45}
 .recbox .rc{display:flex;gap:var(--s3);padding:4px 0}
@@ -384,6 +391,7 @@ svg [data-act]{cursor:pointer}
 <body>
 <header class="app">
   <div class="hbar">
+    <img class="hlogo" src="./icons/ox-192.png" alt="" width="34" height="34">
     <div class="htitle">
       <div class="day" id="hDay">FORGE</div>
       <div class="sub" id="hSub">Road to Stage 2029</div>
@@ -1110,10 +1118,10 @@ function applyI18nStatic(){
 }
 function renderHeader(){
  const wk=workoutKeyFor(S.selDate);
- const dname=parseLocal(S.selDate).toLocaleDateString(DB.settings.lang==="vi"?"vi-VN":"en-US",{weekday:"long"});
+ const dname=parseLocal(S.selDate).toLocaleDateString(DB.settings.lang==="vi"?"vi-VN":"en-US",{weekday:window.innerWidth<480?"short":"long"});
  const wt=wk==='rest'?t("rest_day"):(DB.program.workouts[wk]?tn(DB.program.workouts[wk].title):wk);
  $("#hDay").textContent=cap(dname)+" — "+wt;
- $("#hSub").textContent="FORGE · "+t("app_sub");
+ $("#hSub").textContent="FORGE · MTXE";
  // road rail
  const start=parseLocal(DB.athlete.phase.start||"2026-04-01").getTime();
  const show=parseLocal(DB.athlete.goal.showDate).getTime();
@@ -2057,6 +2065,7 @@ function viewMission(){
  h+=`<div class="card card-pad"><div class="ring-wrap"><div id="stageRing"></div>
    <div class="ring-info"><div class="big num">${fmtInt(days)}</div><div class="lbl">${esc(t("stage_in"))} · ${esc(a.goal.showDate)}</div>
      <div class="phasepill" style="margin:10px 0 0">P${a.phase.index} · ${esc(tn(a.phase.name).toUpperCase())}</div></div></div></div>`;
+h+=`<div class="card card-pad motto"><img src="./icons/ox-192.png" alt="" width="56" height="56"><div><div class="mt">MTXE</div><div class="ms">Mental Toughness · Extra Effort</div></div></div>`;
  h+=`<div class="card card-pad"><div class="motivate" style="padding:0">“${esc(tn(motiv))}”</div></div>`;
  // recomp stats
  h+=`<div class="card card-pad"><div class="caps" style="margin-bottom:12px">${esc(t("kpi_bw"))}</div><div class="tgrid">

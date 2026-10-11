@@ -1,14 +1,14 @@
 /* FORGE service worker — offline shell.
    Strategy: network-first for the page (so updates always land),
    cache-first + background refresh for static assets. */
-const VERSION = 'forge-2026-10-08-2';
+const VERSION = 'forge-2026-10-11-1';
 const CORE = [
   './',
   './manifest.webmanifest',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/icon-512-maskable.png',
-  './icons/apple-touch-icon.png'
+  './icons/ox-192.png',
+  './icons/ox-512.png',
+  './icons/ox-512-maskable.png',
+  './icons/ox-apple-touch.png'
 ];
 
 self.addEventListener('install', event => {
