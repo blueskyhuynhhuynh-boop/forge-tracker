@@ -344,6 +344,10 @@ svg [data-act]{cursor:pointer}
 .planbox .pl4.up{color:var(--up);font-weight:700}
 .card.brief{padding:10px 14px;font-size:.75rem;color:var(--tx-2);line-height:1.5}
 .card.brief div+div{margin-top:3px}
+.snote label{display:block;margin-bottom:6px}
+.snote textarea{width:100%;min-height:56px;background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r-sm);padding:8px 10px;font-size:16px;font-family:var(--ui);color:var(--tx-1);resize:vertical}
+.snote textarea:focus{outline:none;border-color:var(--gold)}
+.sess .snote-h{margin-top:8px;font-size:.8125rem;color:var(--tx-2);white-space:pre-wrap}
 
 /* ---------- LOGO + MOTTO ---------- */
 .motto{display:flex;align-items:center;gap:var(--s4)}
@@ -487,7 +491,7 @@ function baseDB(){
   meta:{createdAt:now,updatedAt:now,lastTab:"today",appName:"FORGE"},
   settings:{lang:"en",units:"lb",plateIncrement:5,repIncrement:1,showRPE:false,restDefaultSec:90,fst7RestSec:40,lastStatsRange:"12w",lastStatsExId:null,lastBackupAt:null},
   athlete:{name:"Loc Tan Huynh",heightCm:179,division:"NPC Natural Classic Physique",
-    goal:{targetWeightLb:174,targetBfPct:4.5,showDate:"2029-06-01"},
+    goal:{targetWeightLb:157,targetBfPct:4.5,showDate:"2029-06-01"},
     phase:{id:"p1",name:{en:"Lean Recomp",vi:"Tái cấu trúc nạc"},index:1,start:"2026-04-01",end:"2026-10-31"}},
   program:{
     cycle:{onDays:3,offDays:1,startDate:todayISO(),order:["push","pull","legs","shoulder"]},
@@ -516,11 +520,11 @@ const MOTIVATE=[
    sets = [weeks 1-2, weeks 3-4, week 5+]. Loads are lb. Dumbbell loads are both dumbbells added.
    Bump PLAN.id to re-install an edited plan; logged sets are never touched by an install. */
 const PLAN={
- id:"r0-2026-10-v1",start:"2026-10-12",weeks:10,deloadWeek:7,
+ id:"r0-2026-10-v2",start:"2026-10-12",weeks:10,deloadWeek:7,deloadWeeks:[4,7], // week 4 (Nov 2–8) = the coach's half-set week (note of Oct 31)
  week:{mon:"p_cba",tue:"p_lega",wed:"rest",thu:"p_bcb",fri:"p_legb",sat:"p_sha",sun:"rest"},
  workouts:{
   p_cba:{en:"Chest + Back A",vi:"Ngực + Lưng A",min:60,muscles:["chest","back","triceps"],ex:["p_incline_smith","p_wide_pulldown","p_korean_press","p_cable_row","p_pushdown"]},
-  p_lega:{en:"Legs A",vi:"Chân A",min:60,muscles:["quads","hams","calves","shoulders","abs"],ex:["p_ham_curl_a","p_pro_squat","p_leg_ext","p_calf_a","p_cable_lateral","p_abs"]},
+  p_lega:{en:"Legs A",vi:"Chân A",min:60,muscles:["quads","hams","calves","shoulders","abs"],ex:["p_ham_curl_a","p_pro_squat","p_leg_ext","p_calf_a","p_atlantis_lateral","p_abs"]},
   p_bcb:{en:"Back + Chest B",vi:"Lưng + Ngực B",min:55,muscles:["back","chest","shoulders","biceps"],ex:["p_power_row","p_rev_pulldown","p_decline_press","p_chest_fly","p_reverse_fly","p_cable_curl"]},
   p_legb:{en:"Legs B",vi:"Chân B",min:45,muscles:["hams","quads","calves","abs"],ex:["p_ham_curl_b","p_hack_squat","p_db_rdl","p_calf_b","p_abs"]},
   p_sha:{en:"Shoulders + Arms",vi:"Vai + Tay",min:55,muscles:["shoulders","biceps","triceps"],ex:["p_lateral_machine","p_panatta_press","p_reverse_fly","p_db_curl","p_pushdown","p_cable_tricep"]}
@@ -532,10 +536,11 @@ const PLAN={
   p_cable_row:{en:"Seated Cable Row",m:"back",sets:[2,2,2],lo:8,hi:10,left:"1",rest:150,start:180,step:"+1 pin",note:""},
   p_pushdown:{en:"Tricep Push Down",m:"triceps",sets:[2,2,2],lo:8,hi:12,left:"1",rest:120,start:160,step:"+1 pin",note:""},
   p_ham_curl_a:{en:"Hamstring Curl",m:"hams",sets:[2,3,3],lo:8,hi:12,left:"1",rest:120,start:110,step:"+1 pin",note:"Done first: it warms up the knee."},
-  p_pro_squat:{en:"Pro Squat",m:"quads",sets:[2,2,3],lo:10,hi:15,left:"2",rest:180,start:340,step:"+10–20 lb",note:"Pain-free depth only."},
+  p_pro_squat:{en:"Pro Squat",m:"quads",sets:[2,2,3],lo:10,hi:15,left:"2",rest:180,start:340,step:"+10–20 lb",note:"Pain-free depth only. Light grip on the handles, wrist straight: your legs do the work."},
   p_leg_ext:{en:"Leg Extension",m:"quads",sets:[1,1,2],lo:12,hi:15,left:"2",rest:120,start:195,step:"+1 pin",note:"Lower for 2 seconds. Stop if knee pain is 4 or more."},
   p_calf_a:{en:"Calf Raise",m:"calves",sets:[2,3,3],lo:8,hi:12,left:"0–1",rest:90,start:240,step:"+10 lb",note:"Pause 1 second at the bottom."},
   p_cable_lateral:{en:"Leaning Cable Lateral Raise",m:"shoulders",sets:[3,3,3],lo:10,hi:15,left:"0–1",rest:90,start:38.5,step:"slower lowering first, then the next pin",note:"The next pin (51) is a big jump: add reps first."},
+  p_atlantis_lateral:{en:"Atlantis Side-Delt Raise",m:"shoulders",sets:[3,3,3],lo:10,hi:15,left:"0–1",rest:90,start:null,step:"+1 pin",note:"Side delts. Your Oct 27 machine. Light enough to stop at the top of every rep."},
   p_abs:{en:"Abs Machine",m:"abs",sets:[2,2,2],lo:10,hi:15,left:"1",rest:90,start:null,step:"+1 pin",note:"Pick a load that stops you at 10–15 reps. Type the machine load, not your body weight."},
   p_power_row:{en:"Super Power Roll",m:"back",sets:[3,3,3],lo:8,hi:12,left:"1",rest:150,start:180,step:"+1 pin",note:""},
   p_rev_pulldown:{en:"Reverse-grip Pull-down",m:"back",sets:[2,2,2],lo:8,hi:12,left:"1",rest:150,start:180,step:"+1 pin",note:""},
@@ -545,11 +550,10 @@ const PLAN={
   p_cable_curl:{en:"Cable Straight Bar Curl",m:"biceps",sets:[2,2,2],lo:10,hi:12,left:"0–1",rest:90,start:111,step:"+1 pin",note:""},
   p_ham_curl_b:{en:"Hamstring Curl",m:"hams",sets:[1,2,2],lo:10,hi:15,left:"1",rest:120,start:98,step:"+1 pin",note:"Lighter, higher-rep day."},
   p_hack_squat:{en:"Atlantis Hack Squat",m:"quads",sets:[1,1,2],lo:8,hi:12,left:"2",rest:180,start:495,step:"+10–20 lb",note:"Use the leg press instead if knee pain is 4 or more."},
-  p_db_rdl:{en:"Dumbbell Romanian Deadlift",m:"hams",sets:[2,2,2],lo:8,hi:12,left:"2–3",rest:150,start:80,startTxt:"two 40 lb dumbbells (type 80)",step:"+5 lb per hand (type +10)",
-   ease:{weeks:3,lo:10,hi:10,left:"4+"},note:"New lift: the first 3 weeks are easy on purpose. Flat back, slow lowering. Stop if your back hurts."},
+  p_db_rdl:{en:"Pit Shark Deadlift",m:"hams",sets:[2,2,2],lo:8,hi:12,left:"2–3",rest:150,start:null,step:"+10–20 lb",note:"Hip hinge on the Pit Shark (machine load). Flat back, slow lowering. Stop if your back hurts."},
   p_calf_b:{en:"Calf Raise",m:"calves",sets:[2,2,2],lo:10,hi:15,left:"0–1",rest:90,start:220,step:"+10 lb",note:"Pause 1 second at the bottom."},
   p_lateral_machine:{en:"Seated Shoulder Raise Machine",m:"shoulders",sets:[3,3,3],lo:12,hi:20,left:"0–1",rest:90,start:30,step:"+1 pin",note:"Side delts."},
-  p_panatta_press:{en:"Panatta Shoulder Press",m:"shoulders",sets:[2,2,2],lo:8,hi:10,left:"2",rest:180,start:90,step:"+5 lb",note:"First exercise to drop if the shoulder hurts: do 2 extra lateral-raise sets instead."},
+  p_panatta_press:{en:"Panatta Shoulder Press",m:"shoulders",sets:[2,2,2],lo:8,hi:10,left:"2",rest:180,start:90,step:"+5 lb",note:"Both sets at ONE weight, 8–10 reps. No heavy doubles. First exercise to drop if the shoulder hurts: do 2 extra lateral-raise sets instead."},
   p_db_curl:{en:"Standing DB Curl",m:"biceps",sets:[3,3,3],lo:8,hi:12,left:"1",rest:120,start:90,startTxt:"two 45 lb dumbbells (type 90)",step:"two 50s (type 100)",note:"Type both dumbbells added together."},
   p_cable_tricep:{en:"Cable Tricep",m:"triceps",sets:[2,2,2],lo:10,hi:15,left:"0–1",rest:90,start:100,step:"+1 pin",note:"Arms at your sides. No overhead work for now."}
  }
@@ -573,7 +577,7 @@ function installPlan(d){
  });
  p.cycle=p.cycle||{onDays:3,offDays:1,startDate:PLAN.start,order:[]};
  // "from" = the first day the weekly plan decides what a day is; earlier days keep the old rotation
- p.plan={id:PLAN.id,start:PLAN.start,weeks:PLAN.weeks,deloadWeek:PLAN.deloadWeek,week:Object.assign({},PLAN.week),from:(p.plan&&p.plan.from)||todayISO(),installedAt:new Date().toISOString()};
+ p.plan={id:PLAN.id,start:PLAN.start,weeks:PLAN.weeks,deloadWeek:PLAN.deloadWeek,deloadWeeks:(PLAN.deloadWeeks||[PLAN.deloadWeek]).slice(),week:Object.assign({},PLAN.week),from:(p.plan&&p.plan.from)||todayISO(),installedAt:new Date().toISOString()};
  // days from today on that hold nothing at all (no set, cardio, note or tick) were auto-built from the old lists: let them rebuild from the plan.
  // anything with a logged set is left exactly as it is.
  const today=todayISO();
@@ -583,6 +587,28 @@ function installPlan(d){
   const ticked=!!(s.checks&&Object.keys(s.checks).some(function(c){return s.checks[c];}));
   if(!logged&&s.cardioMin==null&&!s.note&&!ticked)delete d.sessions[k];
  });
+ return d;
+}
+function fixupData(d){
+ // corrections agreed with Loc on 2026-11-01; each one runs only while its exact wrong data is still present
+ try{
+  // the four Oct 27 "cable lateral raise" sets were done on the Atlantis side-delt machine: give them their own card
+  const s=d.sessions&&d.sessions["2026-10-27"];
+  if(s&&Array.isArray(s.entries)){
+   const i=s.entries.findIndex(function(e){return e&&e.exId==="p_cable_lateral";});
+   const src=i>-1?s.entries[i]:null,def=d.program&&d.program.exercises&&d.program.exercises.p_atlantis_lateral;
+   const isAtl=function(st){return !!st&&[88,110,121].indexOf(st.weight)>-1;};
+   if(def&&src&&Array.isArray(src.sets)&&src.sets.some(isAtl)&&!s.entries.some(function(e){return e&&e.exId==="p_atlantis_lateral";})){
+    const moved=src.sets.filter(isAtl);src.sets=src.sets.filter(function(st){return !isAtl(st);});
+    moved.forEach(function(st,k){st.i=k+1;});src.sets.forEach(function(st,k){st.i=k+1;});
+    s.entries.splice(i+1,0,{exId:"p_atlantis_lateral",name:{en:def.name.en,vi:def.name.vi},muscle:def.muscle,isFst7:false,defaultSets:3,restSec:def.restSec,fst7:null,fstWeight:null,fstUnlocked:false,note:"",sets:moved});
+   }
+  }
+  // a bodyweight entry saved as 173 lb on Oct 14 (the scale read 160.8 that morning)
+  if(Array.isArray(d.bodyLog))d.bodyLog=d.bodyLog.filter(function(b){return !(b&&b.date==="2026-10-14"&&b.weight===173&&b.bfPct==null);});
+  // the stage target was revised to ~157 lb on Oct 6; 174 is the old default
+  if(d.athlete&&d.athlete.goal&&d.athlete.goal.targetWeightLb===174)d.athlete.goal.targetWeightLb=157;
+ }catch(_){}
  return d;
 }
 function defaultDB(){const d=baseDB();installPlan(d);return d;}
@@ -611,7 +637,7 @@ function planWeek(dateStr){
 function planStage(dateStr){
  const w=planWeek(dateStr);if(w==null)return null;
  const pl=DB.program.plan;
- if(w===pl.deloadWeek)return {w:w,idx:2,deload:true};
+ if((pl.deloadWeeks||[pl.deloadWeek]).indexOf(w)>-1)return {w:w,idx:2,deload:true};
  return {w:w,idx:w<=2?0:(w<=4?1:2),deload:false};
 }
 function plannedSets(def,dateStr){
@@ -644,7 +670,7 @@ function planBrief(wk,dateStr){
  const vi=DB.settings.lang==="vi",st=planStage(dateStr),L=[];
  L.push(vi?("Khoảng "+w.minutes+" phút. Khởi động (không ghi): đi bộ 5 phút, rồi 50% × 8, 70% × 5, 85% × 2 trước bài đẩy, máy squat hoặc RDL đầu tiên.")
           :("About "+w.minutes+" min. Warm-up (don't log it): 5 min walk, then 50% × 8, 70% × 5, 85% × 2 before the first press, squat machine or RDL."));
- if(st&&st.deload)L.push(vi?"TUẦN GIẢM TẢI: giữ mức tạ, nửa số set, dừng khi còn 3–4 rep. Tuần này không tăng gì.":"DELOAD WEEK: same loads, half the sets, stop with 3–4 reps left. Nothing goes up this week.");
+ if(st&&st.deload)L.push(vi?"TUẦN GIẢM TẢI: giữ mức tạ, nửa số set, dừng khi còn 3–4 rep. Tuần này không tăng gì. Bỏ bài nào gây đau (gối, cổ tay).":"DELOAD WEEK: same loads, half the sets, stop with 3–4 reps left. Nothing goes up this week. Skip any lift that hurts (knee, wrist).");
  else{
   L.push(vi?"Cùng một mức tạ cho mọi set chính. Mỗi buổi cố thêm 1 rep.":"Same weight on every hard set. Try to add 1 rep each session.");
   if(st&&st.w<=2)L.push(vi?"Làm quen: dùng mức tạ ghi sẵn. Nếu set 1 thấp hơn khoảng rep, giảm 5–10 lb ngay.":"Ease-in: use the start loads. If set 1 lands under the rep range, take 5–10 lb off right away.");
@@ -784,6 +810,7 @@ function migrate(d){
  d.sessions=d.sessions||{};
  d.bodyLog=Array.isArray(d.bodyLog)?d.bodyLog:[];
  if(!planInstalled(d))installPlan(d);
+ fixupData(d);
  return d;
 }
 function writeNow(){
@@ -1141,10 +1168,11 @@ function viewToday(){
  h+=planPill(S.selDate);
  h+=dateNav();
  h+=workoutPicker(wk);
- if(wk==='rest')return h+restCard();
+ if(wk==='rest')return h+restCard()+noteCard(ensureSession(S.selDate));
  const s=ensureSession(S.selDate);
  const ns=sessionSets(s),vol=sessionTonnage(s);
  h+=planBrief(wk,S.selDate);
+ h+=noteCard(s);
  h+=`<div class="card raised card-pad"><div style="display:flex;justify-content:space-between;align-items:center">
    <div><div class="num" style="font-size:1.6rem;font-weight:800">${ns}</div><div class="caps">${esc(t("total_sets"))}</div></div>
    <div style="text-align:center"><div class="num" style="font-size:1.6rem;font-weight:800">${fmtInt(vol)}</div><div class="caps">${esc(t("total_vol"))} ${esc(unitLbl())}</div></div>
@@ -1156,6 +1184,11 @@ function viewToday(){
  const motiv=MOTIVATE[parseLocal(S.selDate).getDate()%MOTIVATE.length];
  h+=`<div class="card"><div class="motivate">“${esc(tn(motiv))}”<br><span class="caps" style="display:block;margin-top:8px">— Hany Rambod method</span></div></div>`;
  return h;
+}
+function noteCard(s){
+ // one free-text line per day for the coach: pain scores, sleep, how the session felt. saved as you type.
+ const vi=DB.settings.lang==="vi";
+ return `<div class="card card-pad snote"><label class="caps" for="sessNote">${esc(vi?"Ghi chú cho HLV (đau 0–10, ngủ, cảm giác)":"Note for the coach (pain 0–10, sleep, how it felt)")}</label><textarea id="sessNote" rows="2" data-act="sessNote" placeholder="${esc(vi?"vd: gối 2/10, ngủ 7h":"e.g. knee 2/10, slept 7h")}">${esc(s.note||"")}</textarea></div>`;
 }
 function dateNav(){
  const d=parseLocal(S.selDate);
@@ -2048,6 +2081,7 @@ function sessionCard(s,hit){
  let h=`<div class="card sess"><div class="sh"><div><div class="dt">${esc(fmtDate(s.date))}</div><div class="dk">${esc(tn(day.title))}</div></div>
    ${hit?"":`<button class="del" data-act="delSession" data-date="${s.date}" style="width:34px;height:34px;border-radius:8px;color:var(--tx-3)">✕</button>`}</div>`;
  h+=`<div class="stats"><span><b>${sessionSets(s)}</b> ${esc(t("total_sets"))}</span><span><b>${fmtInt(sessionTonnage(s))}</b> ${esc(unitLbl())}</span></div>`;
+ if(s.note)h+=`<div class="snote-h">📝 ${esc(s.note)}</div>`;
  h+=`<div class="elist">`;
  s.entries.filter(e=>e.sets.length).forEach(e=>{let best=0,bw=0,br=0;e.sets.forEach(st=>{const er=e1rm(toDisp(st.weight,st.unit),st.reps);if(er>best){best=er;bw=toDisp(st.weight,st.unit);br=st.reps;}});
    h+=`<div class="e${hit&&hit[e.exId]?" hit":""}"><span>${esc(tn(e.name))} ${e.isFst7?'<span class="badge fst">7</span>':''}</span><span class="v">${e.sets.length}× · ${fmtN(bw)}×${br}</span></div>`;});
@@ -2060,6 +2094,7 @@ function viewMission(){
  const a=DB.athlete;const show=parseLocal(a.goal.showDate).getTime();const days=Math.max(0,Math.ceil((show-Date.now())/864e5));
  const bw=DB.bodyLog.slice().sort((x,y)=>x.date<y.date?-1:1);const last=bw.length?bw[bw.length-1]:null;
  const lbm=last&&last.bfPct!=null?last.weight*(1-last.bfPct/100):null;
+ const lastWaist=bw.slice().reverse().find(b=>b.waist!=null)||null;
  const motiv=MOTIVATE[new Date().getDate()%MOTIVATE.length];
  let h=`<h1 class="screen-title">${esc(t("tab_mission"))}</h1>`;
  h+=`<div class="card card-pad"><div class="ring-wrap"><div id="stageRing"></div>
@@ -2073,9 +2108,11 @@ h+=`<div class="card card-pad motto"><img src="./icons/ox-192.png" alt="" width=
    <div class="stat"><div class="v">${last&&last.bfPct!=null?fmtN(last.bfPct)+"%":"—"}</div><div class="l">${esc(t("bw_bf"))}</div></div>
    <div class="stat"><div class="v">${lbm!=null?fmtN(toDisp(lbm,last.unit)):"—"} <span style="font-size:.7rem;color:var(--tx-3)">${esc(unitLbl())}</span></div><div class="l">${esc(t("lbm"))}</div></div>
    <div class="stat"><div class="v" style="color:var(--gold-bright)">${fmtN(DB.settings.units==="kg"?a.goal.targetWeightLb/LBPERKG:a.goal.targetWeightLb)}</div><div class="l">${esc(t("target_w"))}</div></div>
+   <div class="stat"><div class="v">${lastWaist?fmtN(lastWaist.waist)+'<span style="font-size:.7rem;color:var(--tx-3)"> in</span>':"—"}</div><div class="l">${esc(DB.settings.lang==="vi"?"Vòng eo":"Waist")}${lastWaist?` · ${esc(fmtDate(lastWaist.date))}`:""}</div></div>
  </div>
- <div class="row2" style="margin-top:16px"><div class="field"><label>${esc(t("bw_weight"))} (${esc(unitLbl())})</label><input id="bwW" inputmode="decimal" class="num" placeholder="${last?fmtN(toDisp(last.weight,last.unit)):"173"}"></div>
-   <div class="field"><label>${esc(t("bw_bf"))}</label><input id="bwBf" inputmode="decimal" class="num" placeholder="${last&&last.bfPct!=null?last.bfPct:"16"}"></div></div>
+ <div class="row2" style="margin-top:16px"><div class="field"><label>${esc(t("bw_weight"))} (${esc(unitLbl())})</label><input id="bwW" inputmode="decimal" class="num" placeholder="${last?fmtN(toDisp(last.weight,last.unit)):""}"></div>
+   <div class="field"><label>${esc(t("bw_bf"))}</label><input id="bwBf" inputmode="decimal" class="num" placeholder="${last&&last.bfPct!=null?last.bfPct:""}"></div></div>
+ <div class="row2"><div class="field"><label>${esc(DB.settings.lang==="vi"?"Vòng eo ngang rốn (inch)":"Waist at the navel (inch)")}</label><input id="bwWaist" inputmode="decimal" class="num" placeholder="${lastWaist?fmtN(lastWaist.waist):"31.5"}"></div><div class="field"></div></div>
  <button class="btn gold" data-act="logBw">${esc(t("log_bw"))}</button></div>`;
  // PR wall
  h+=`<div class="card card-pad"><div class="caps" style="margin-bottom:8px">${esc(t("pr_wall"))}</div><div class="prwall">${prWallHTML()}</div></div>`;
@@ -2126,9 +2163,10 @@ function logBw(){
  const w=parseFloat(($("#bwW").value||$("#bwW").placeholder||"").replace(",", "."));
  if(isNaN(w)||w<=0){toast(DB.settings.lang==="vi"?"Nhập cân nặng":"Enter weight");return;}
  const bfRaw=$("#bwBf").value.trim();const bf=bfRaw?parseFloat(bfRaw.replace(",", ".")):null;
+ const waistRaw=($("#bwWaist")?$("#bwWaist").value:"").trim();const waist=waistRaw?parseFloat(waistRaw.replace(",", ".")):null;
  const date=todayISO();const lbm=bf!=null?w*(1-bf/100):null;
  const idx=DB.bodyLog.findIndex(b=>b.date===date);
- const rec={date:date,weight:w,unit:DB.settings.units,bfPct:bf,lbm:lbm};
+ const rec={date:date,weight:w,unit:DB.settings.units,bfPct:bf,lbm:lbm,waist:(waist!=null&&waist>0)?waist:(idx>=0?(DB.bodyLog[idx].waist==null?null:DB.bodyLog[idx].waist):null)};
  if(idx>=0)DB.bodyLog[idx]=rec;else DB.bodyLog.push(rec);
  save();render();toast(DB.settings.lang==="vi"?"Đã lưu cân nặng":"Bodyweight saved");
 }
@@ -2280,7 +2318,7 @@ document.addEventListener("click",e=>{
 $$("#tabbar button").forEach(b=>b.addEventListener("click",()=>{S.tab=b.dataset.tab;S.histQ="";DB.meta.lastTab=S.tab;save();render();}));
 
 // History search: refresh only the results, so the keyboard stays open while typing
-document.addEventListener("input",e=>{if(e.target&&e.target.id==="histQ"){S.histQ=e.target.value;histRefresh();}});
+document.addEventListener("input",e=>{if(e.target&&e.target.id==="histQ"){S.histQ=e.target.value;histRefresh();}if(e.target&&e.target.id==="sessNote"){const s=ensureSession(S.selDate);s.note=e.target.value;save();}});
 document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target&&e.target.id==="histQ")e.target.blur();});
 // input handlers (delegated) for settings & numeric live-edit
 document.addEventListener("change",e=>{
