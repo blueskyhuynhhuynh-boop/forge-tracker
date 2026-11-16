@@ -589,8 +589,10 @@ function installPlan(d){
  });
  return d;
 }
+let FIXED=0; // how many data corrections the last fixupData() run applied (load() keeps a safety copy first)
 function fixupData(d){
  // corrections agreed with Loc on 2026-11-01; each one runs only while its exact wrong data is still present
+ FIXED=0;
  try{
   // the four Oct 27 "cable lateral raise" sets were done on the Atlantis side-delt machine: give them their own card
   const s=d.sessions&&d.sessions["2026-10-27"];
@@ -608,6 +610,41 @@ function fixupData(d){
   if(Array.isArray(d.bodyLog))d.bodyLog=d.bodyLog.filter(function(b){return !(b&&b.date==="2026-10-14"&&b.weight===173&&b.bfPct==null);});
   // the stage target was revised to ~157 lb on Oct 6; 174 is the old default
   if(d.athlete&&d.athlete.goal&&d.athlete.goal.targetWeightLb===174)d.athlete.goal.targetWeightLb=157;
+ }catch(_){}
+ try{
+  // Nov 12 (agreed with Loc 2026-11-15): that whole session was trained at the SMU gym on other machines, but its sets were
+  // saved on the usual plan cards, so the next Thursday showed the SMU loads as "last time" and a 205 lb Chest Fly PR. Each
+  // lift gets its own "(SMU)" card, used on that day only: the same set objects move unchanged, the plan cards stay in the
+  // session with 0 sets, and no weekly template gets the new cards.
+  const ex=d.program&&d.program.exercises,s=d.sessions&&d.sessions["2026-11-12"];
+  const SMU={p_power_row:[[270,8],[250,10],[250,7]],p_rev_pulldown:[[230,5],[230,6]],p_decline_press:[[140,8],[160,7]],
+   p_chest_fly:[[205,7],[205,5]],p_reverse_fly:[[55,10],[55,11]],p_cable_curl:[[80,10]]};
+  if(ex&&s&&Array.isArray(s.entries)){
+   const ids=Object.keys(SMU),at=function(id){return s.entries.findIndex(function(e){return e&&e.exId===id;});};
+   const exact=function(id){
+    const e=s.entries[at(id)],want=SMU[id];
+    return !!(e&&ex[id]&&ex[id].plan&&Array.isArray(e.sets)&&e.sets.length===want.length&&
+     e.sets.every(function(st,k){return !!st&&st.weight===want[k][0]&&st.reps===want[k][1]&&st.unit==="lb";}));
+   };
+   const noSmuYet=ids.every(function(id){return !ex["ex_smu_"+id]&&at("ex_smu_"+id)<0;});
+   if(noSmuYet&&ids.every(exact)){
+    const add=ids.map(function(id){
+     const src=s.entries[at(id)],nm=(src.name&&src.name.en)?src.name:ex[id].name;
+     const name={en:nm.en+" (SMU)",vi:(nm.vi||nm.en)+" (SMU)"},mus=src.muscle||ex[id].muscle,rest=src.restSec||ex[id].restSec,n=src.defaultSets||3;
+     return {src:src,def:{name:{en:name.en,vi:name.vi},muscle:mus,defaultSets:n,isFst7:false,restSec:rest,fst7:null,notes:"",gym:"smu"},
+      entry:{exId:"ex_smu_"+id,name:name,muscle:mus,isFst7:false,defaultSets:n,restSec:rest,fst7:null,fstWeight:null,fstUnlocked:false,note:"",sets:src.sets}};
+    });
+    add.forEach(function(a){
+     ex[a.entry.exId]=a.def;
+     a.entry.sets.forEach(function(st,k){st.i=k+1;});
+     a.src.sets=[];
+     s.entries.splice(s.entries.indexOf(a.src)+1,0,a.entry);
+    });
+    FIXED++;
+   }
+  }
+  // the two cards added on Oct 29 were SMU machines too: mark their gym so they are never counted with the usual gym's lifts
+  ["ex_c1793312755410","ex_c1793313376275"].forEach(function(id){const x=ex&&ex[id];if(x&&!x.plan&&x.gym==null){x.gym="smu";FIXED++;}});
  }catch(_){}
  return d;
 }
@@ -744,7 +781,7 @@ let DB=null, saveTimer=null, storageOK=true, storageWarned=false;
 function lsAvailable(){try{const k="__forge_probe__";localStorage.setItem(k,"1");localStorage.removeItem(k);return true;}catch(e){return false;}}
 function pruneSnapshots(keepLatest){try{const keys=Object.keys(localStorage).filter(k=>k.indexOf(KEY+".bak.")===0||k.indexOf(KEY+".corrupt.")===0).sort();const drop=keepLatest?keys.slice(0,-1):keys;drop.forEach(k=>{try{localStorage.removeItem(k);}catch(_){}});return drop.length;}catch(e){return 0;}}
 function load(){
- let upgraded=false,noCopy=false;
+ let upgraded=false,noCopy=false,fixOnly=false;
  if(!lsAvailable()){
   // storage refuses writes: still show whatever is already saved instead of an empty app
   storageOK=false;
@@ -764,7 +801,10 @@ function load(){
   const needsPlan=!planInstalled(parsed);
   if(needsPlan){try{localStorage.setItem(KEY+".bak."+Date.now(),raw);}catch(_){noCopy=true;}}
   DB=migrate(parsed);
-  upgraded=needsPlan;
+  // a data correction ran (fixupData): keep the untouched copy as well, then save the corrected data once
+  fixOnly=FIXED>0&&!needsPlan;
+  if(fixOnly){try{localStorage.setItem(KEY+".bak."+Date.now(),raw);}catch(_){noCopy=true;}}
+  upgraded=needsPlan||fixOnly;
  }catch(e){
   // never fall back to a blank DB without first preserving whatever was stored,
   // otherwise the next save() would silently overwrite real training history
@@ -775,7 +815,9 @@ function load(){
  if(upgraded){
   // outside the try on purpose: a failed save must never be mistaken for unreadable data
   persist(true);
-  if(noCopy){try{showBanner("Your training plan is installed and every logged set is still here, but the phone had no room for a safety copy. Open Mission › Export backup (JSON) now.",true);}catch(_){}}
+  if(noCopy){try{showBanner(!fixOnly?"Your training plan is installed and every logged set is still here, but the phone had no room for a safety copy. Open Mission › Export backup (JSON) now."
+   :(DB.settings.lang==="vi"?"Đã sửa dữ liệu và mọi set đã ghi vẫn còn nguyên, nhưng điện thoại không còn chỗ cho bản sao an toàn. Hãy mở Sứ mệnh › Xuất sao lưu (JSON) ngay."
+   :"Your log was corrected and every logged set is still here, but the phone had no room for a safety copy. Open Mission › Export backup (JSON) now."),true);}catch(_){}}
  }
 }
 function migrate(d){
@@ -1929,7 +1971,7 @@ function histCard(r,i){
  const row=function(k,v){return `<div class="hr-row"><span class="k">${esc(k)}</span><span class="v">${v}</span></div>`;};
  let h=`<div class="card hres" data-act="histOpen" data-i="${i}">`;
  h+=`<div class="hr-top"><span class="scan-dot" style="background:${col}"></span><span class="hr-name">${esc(last.names[0])}</span></div>`;
- h+=`<div class="hr-sub">${esc(mname(g.muscle))} · ${days.length} ${esc(vi?"buổi":(days.length===1?"session":"sessions"))} · ${st.sets} ${esc(vi?"set":(st.sets===1?"set":"sets"))}</div>`;
+ h+=`<div class="hr-sub">${esc(mname(g.muscle))}${esc(gymTag(g.gym,last.names[0]))} · ${days.length} ${esc(vi?"buổi":(days.length===1?"session":"sessions"))} · ${st.sets} ${esc(vi?"set":(st.sets===1?"set":"sets"))}</div>`;
  h+=row(vi?"Lần cuối":"Last time",`<b>${esc(fmtDate(last.date))}</b>${ago?" · "+esc(ago):""}`);
  h+=row(last.sets.length+" "+(vi?"set":(last.sets.length===1?"set":"sets")),`<b>${esc(histSetsText(last.sets))}</b>`);
  let trend="";
@@ -1961,7 +2003,7 @@ function openHistSheet(i){
  const g=r.g,vi=DB.settings.lang==="vi",col=MCOLOR[g.muscle]||"var(--gold)",days=histStats(r.ids).days;
  if(!days.length)return;
  let h='<div class="mdet-head"><span class="mdet-dot" style="background:'+col+'"></span><h3 style="margin:0">'+esc(days[days.length-1].names[0])+'</h3></div>';
- h+='<div class="mdet-sub">'+esc(mname(g.muscle))+' · '+days.length+' '+esc(vi?"buổi":(days.length===1?"session":"sessions"))+'</div>';
+ h+='<div class="mdet-sub">'+esc(mname(g.muscle))+esc(gymTag(g.gym,days[days.length-1].names[0]))+' · '+days.length+' '+esc(vi?"buổi":(days.length===1?"session":"sessions"))+'</div>';
  if(r.names.length>1)h+='<div class="scan-var">'+esc(vi?"Gồm các tên:":"Counts these names:")+' <b>'+r.names.map(esc).join('</b>, <b>')+'</b></div>';
  h+='<div class="caps" style="margin-top:var(--s4)">'+esc(vi?"Từng buổi (mọi set)":"Every session (all sets)")+'</div>';
  days.slice().reverse().forEach(function(d,k,arr){
@@ -2014,14 +2056,18 @@ function liftIndex(){
 }
 const LIFT_LEGS={quads:1,hams:1,calves:1};
 function liftRegion(m){return LIFT_LEGS[m]?"legs":(m||"");}
+// the gym a card belongs to ("" = Loc's usual gym; "smu" = the SMU gym). cards from two gyms are never one lift.
+function exGym(id){const x=DB&&DB.program&&DB.program.exercises?DB.program.exercises[id]:null;return (x&&x.gym)||"";}
+const GYM_LBL={smu:"SMU"}; // a gym's short name (the same in English and Vietnamese)
+function gymTag(gym,name){const l=gym&&GYM_LBL[gym];return l&&String(name||"").indexOf(l)<0?" · "+l:"";} // " · SMU" unless the name already says it
 function liftIds(e){
- // this card's exercise plus every other id that is the same lift typed differently (never a look-alike machine)
- const idx=liftIndex(),mine=[tn(e.name)||e.exId].concat(LIFT_AKA[e.exId]||[]),ids={};
+ // this card's exercise plus every other id that is the same lift typed differently (never a look-alike machine, never another gym)
+ const idx=liftIndex(),mine=[tn(e.name)||e.exId].concat(LIFT_AKA[e.exId]||[]),ids={},gym=exGym(e.exId);
  (idx.names[e.exId]||[]).forEach(function(n){if(mine.indexOf(n)<0)mine.push(n);});
  ids[e.exId]=1;
  const reg=e.muscle?liftRegion(e.muscle):null; // the same words under another body region are a different lift
  Object.keys(idx.names).forEach(function(id){
-  if(!ids[id]&&(reg==null||liftRegion(idx.mus[id])===reg)&&idx.names[id].some(function(n){return mine.some(function(m){return histTypoSame(m,n);});}))ids[id]=1;
+  if(!ids[id]&&exGym(id)===gym&&(reg==null||liftRegion(idx.mus[id])===reg)&&idx.names[id].some(function(n){return mine.some(function(m){return histTypoSame(m,n);});}))ids[id]=1;
  });
  return ids;
 }
@@ -2307,7 +2353,7 @@ document.addEventListener("click",e=>{
   case"toggleCheck":{const s=ensureSession(S.selDate);s.checks=s.checks||{};s.checks[a.dataset.key]=!s.checks[a.dataset.key];save();render();}break;
   case"muscleDetail":openMuscleSheet(a.dataset.m);break;
   case"jumpScroll":jumpScroll();break;
-  case"scanVariants":openScanSheet(a.dataset.k,a.dataset.m);break;
+  case"scanVariants":openScanSheet(a.dataset.k,a.dataset.m,a.dataset.g);break;
   case"histOpen":openHistSheet(+a.dataset.i);break;
   case"histClear":{S.histQ="";const i=$("#histQ");if(i){i.value="";i.focus();}histRefresh();}break;
   case"histPick":{S.histQ=a.dataset.q||"";const i=$("#histQ");if(i)i.value=S.histQ;histRefresh();window.scrollTo({top:0,behavior:"auto"});}break;
@@ -2382,7 +2428,7 @@ function exerciseGroups(){
     if(er>top){top=er;topW=w;topR=st.reps;}
    });
    const nm=tn(e.name)||e.exId;
-   if(!byId[e.exId])byId[e.exId]={name:nm,all:[],muscle:e.muscle,norm:normName(nm),pts:[],sets:0};
+   if(!byId[e.exId])byId[e.exId]={name:nm,all:[],muscle:e.muscle,gym:exGym(e.exId),norm:normName(nm),pts:[],sets:0};
    if(byId[e.exId].all.indexOf(nm)<0)byId[e.exId].all.push(nm);
    byId[e.exId].pts.push({date:sess.date,e1rm:top,weight:topW,reps:topR,name:nm});
    byId[e.exId].sets+=e.sets.length;
@@ -2392,9 +2438,10 @@ function exerciseGroups(){
  Object.keys(byId).forEach(function(id){
   const it=byId[id];let g=null;
   for(let i=0;i<groups.length;i++){
-   if(groups[i].muscle===it.muscle&&sameExercise(groups[i].norm,it.norm)){g=groups[i];break;}
+   // a card from another gym is a different machine, however alike the names are ("Chest Fly (SMU)" / "Chest Fly")
+   if(groups[i].muscle===it.muscle&&groups[i].gym===it.gym&&sameExercise(groups[i].norm,it.norm)){g=groups[i];break;}
   }
-  if(!g){g={norm:it.norm,muscle:it.muscle,names:[],ids:[],idNames:{},idLast:{},pts:[],sets:0};groups.push(g);}
+  if(!g){g={norm:it.norm,muscle:it.muscle,gym:it.gym,names:[],ids:[],idNames:{},idLast:{},pts:[],sets:0};groups.push(g);}
   g.ids.push(id);g.idNames[id]=it.all;g.idLast[id]=it.pts[it.pts.length-1].date;
   it.all.forEach(function(n){if(g.names.indexOf(n)<0)g.names.push(n);});
   g.pts=g.pts.concat(it.pts);g.sets+=it.sets;
@@ -2467,10 +2514,10 @@ function drawScan(){
  groups.forEach(function(g){
   const vals=g.pts.map(function(p){return p.e1rm;});
   const col=MCOLOR[g.muscle]||"var(--gold)";
-  h+='<div class="scan-row" data-act="scanVariants" data-k="'+esc(g.norm)+'">'
+  h+='<div class="scan-row" data-act="scanVariants" data-k="'+esc(g.norm)+'"'+(g.gym?' data-g="'+esc(g.gym)+'"':'')+'>'
    +'<span class="scan-dot" style="background:'+col+'"></span>'
    +'<span class="scan-n"><b>'+esc(g.name)+'</b>'
-   +'<span class="scan-sub">'+g.sessions+' '+esc(vi?"buổi":"sessions")+' · '+g.sets+' '+esc(vi?"set":"sets")
+   +'<span class="scan-sub">'+g.sessions+' '+esc(vi?"buổi":"sessions")+' · '+g.sets+' '+esc(vi?"set":"sets")+esc(gymTag(g.gym,g.name))
    +(g.names.length>1?'<span class="scan-mg">'+g.names.length+' '+esc(vi?"tên":"names")+'</span>':'')+'</span></span>'
    +'<span class="scan-s">'+sparkline(vals,col)+'</span>'
    +'<span class="scan-v">'+fmtN(g.pts[g.pts.length-1].weight)+'</span>'
@@ -2485,13 +2532,13 @@ function drawScan(){
      ?("Đã gộp "+merged+" bài bị gõ sai tên khác nhau.")
      :(merged+" lifts had spelling variants and were merged automatically."))+'</div>'):'');
 }
-function openScanSheet(k,m){
+function openScanSheet(k,m,gym){
  const vi=DB.settings.lang==="vi";
- const g=exerciseGroups().filter(function(x){return x.norm===k&&(!m||x.muscle===m);})[0];
+ const g=exerciseGroups().filter(function(x){return x.norm===k&&(!m||x.muscle===m)&&x.gym===(gym||"");})[0];
  if(!g)return;
  const col=MCOLOR[g.muscle]||"var(--gold)";
  let h='<div class="mdet-head"><span class="mdet-dot" style="background:'+col+'"></span><h3 style="margin:0">'+esc(g.name)+'</h3></div>';
- h+='<div class="mdet-sub">'+esc(mname(g.muscle))+' · '+g.sessions+' '+esc(vi?"buổi":"sessions")+' · '+g.sets+' '+esc(vi?"set":"sets")+'</div>';
+ h+='<div class="mdet-sub">'+esc(mname(g.muscle))+esc(gymTag(g.gym,g.name))+' · '+g.sessions+' '+esc(vi?"buổi":"sessions")+' · '+g.sets+' '+esc(vi?"set":"sets")+'</div>';
  if(g.names.length>1){
   h+='<div class="scan-var">'+esc(vi?"Đã gộp các cách gõ tên:":"Merged spellings:")+' <b>'+g.names.map(esc).join('</b>, <b>')+'</b></div>';
  }
