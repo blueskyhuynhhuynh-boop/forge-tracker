@@ -472,7 +472,7 @@ const T={
   weight:"Weight",reps:"Reps",same_x7:"same x7",keep_equal:"Keep weight equal",fst_on_track:"On spec",
   no_data:"Not enough data yet",need_2w:"Log 2+ weeks to unlock week-vs-week",log_first:"Log your first set to light up your charts",
   this_week:"This week",last_week:"vs last week",new_pr:"NEW PR!",new:"NEW",welcome:"Welcome — Day 1 on the road to 2029",
-  rest_cardio_title:"Rest + Light Cardio",cardio_note:"20–30 min Zone-2 cardio (keep heart rate easy)",done:"Done",
+  rest_cardio_title:"Rest + Light Cardio",cardio_note:"Walk about 40 min, only if comfortable (keep heart rate easy)",done:"Done",
   posing_title:"Rest + Posing",posing_note:"Classic Physique mandatories — hold each 30–60s",
   kpi_tonnage:"Weekly Volume",kpi_e1rm:"Top e1RM",kpi_sets:"Sets this week",kpi_bw:"Bodyweight",
   c_e1rm:"Estimated 1RM Trend",c_tonnage:"Weekly Volume by Muscle",c_increase:"Week-vs-Week Increase",
@@ -493,7 +493,7 @@ const T={
   weight:"Tạ",reps:"Số lần",same_x7:"giữ nguyên x7",keep_equal:"Giữ nguyên mức tạ",fst_on_track:"Đúng chuẩn",
   no_data:"Chưa đủ dữ liệu",need_2w:"Ghi từ 2 tuần để xem so sánh tuần",log_first:"Ghi set đầu tiên để bật biểu đồ",
   this_week:"Tuần này",last_week:"so với tuần trước",new_pr:"KỶ LỤC MỚI!",new:"MỚI",welcome:"Chào bạn — Ngày 1 trên đường đến 2029",
-  rest_cardio_title:"Nghỉ + Cardio nhẹ",cardio_note:"20–30 phút cardio Zone-2 (nhịp tim nhẹ nhàng)",done:"Xong",
+  rest_cardio_title:"Nghỉ + Cardio nhẹ",cardio_note:"Đi bộ khoảng 40 phút, chỉ khi thấy thoải mái (nhịp tim nhẹ nhàng)",done:"Xong",
   posing_title:"Nghỉ + Tạo dáng",posing_note:"Các thế bắt buộc Classic Physique — giữ mỗi thế 30–60 giây",
   kpi_tonnage:"Khối lượng tuần",kpi_e1rm:"e1RM cao nhất",kpi_sets:"Set tuần này",kpi_bw:"Cân nặng",
   c_e1rm:"Xu hướng 1RM ước tính",c_tonnage:"Khối lượng theo nhóm cơ",c_increase:"Tăng tiến theo tuần",
@@ -547,51 +547,50 @@ const MOTIVATE=[
  {en:"Compete against yesterday's numbers first.",vi:"Trước tiên hãy thắng những con số của hôm qua."}
 ];
 
-/* ---------- BUILT-IN PLAN (block v3: Nov 23 – Dec 19, 2026) ----------
+/* ---------- BUILT-IN PLAN (block v4: Nov 23 – Dec 19, 2026) ----------
    sets = [weeks 1-2, weeks 3-4, week 5+]. Loads are lb. Dumbbell loads are both dumbbells added.
    Week 1 (Nov 23–29) is the easy week. "reset" is the first day of the new start loads: until a lift has been
    logged on or after that day, its card asks for the start load and not the load used before.
    Order inside a day: the priority muscles (side delts, lats, upper chest) come first.
    Bump PLAN.id to re-install an edited plan; logged sets are never touched by an install. */
 const PLAN={
- id:"r0-2026-11-v3",start:"2026-11-23",weeks:4,deloadWeek:1,deloadWeeks:[1],reset:"2026-11-30",
+ id:"r0-2026-11-v4",start:"2026-11-23",weeks:4,deloadWeek:1,deloadWeeks:[1],reset:"2026-11-30",
  week:{mon:"p_cba",tue:"p_lega",wed:"rest",thu:"p_bcb",fri:"p_legb",sat:"p_sha",sun:"rest"},
  workouts:{
   p_cba:{en:"Chest + Back A",vi:"Ngực + Lưng A",min:65,muscles:["chest","back","triceps"],ex:["p_incline_smith","p_wide_pulldown","p_korean_press","p_cable_row","p_straight_arm","p_pushdown","ex_c1792694982207"]},
   p_lega:{en:"Legs A",vi:"Chân A",min:65,muscles:["shoulders","hams","quads","calves","abs"],ex:["p_atlantis_lateral","p_ham_curl_a","p_pro_squat","p_leg_ext","p_calf_a","p_abs"]},
-  p_bcb:{en:"Back + Chest B",vi:"Lưng + Ngực B",min:70,muscles:["back","chest","shoulders","biceps"],ex:["p_rev_pulldown","p_incline_db","p_cable_lateral","p_power_row","p_chest_fly","p_reverse_fly","p_cable_curl"]},
+  p_bcb:{en:"Back + Chest B",vi:"Lưng + Ngực B",min:80,muscles:["back","chest","shoulders","biceps"],ex:["p_rev_pulldown","p_incline_db","p_cable_lateral","p_power_row","p_decline_press","p_chest_fly","p_reverse_fly","p_cable_curl"]},
   p_legb:{en:"Legs B",vi:"Chân B",min:45,muscles:["hams","quads","calves","abs"],ex:["p_ham_curl_b","p_hack_squat","p_db_rdl","p_calf_b","p_abs"]},
   p_sha:{en:"Shoulders + Arms",vi:"Vai + Tay",min:55,muscles:["shoulders","biceps","triceps"],ex:["p_lateral_machine","p_panatta_press","p_reverse_fly","p_db_curl","p_pushdown_b","p_cable_tricep"]}
  },
  ex:{
   // Monday
   p_incline_smith:{en:"Incline Smith Machine",m:"chest",sets:[3,3,3],lo:6,hi:9,left:"2",rest:180,start:130,step:"+5 lb",note:"Upper chest: priority. Bench at 30°. Pain-free range."},
-  p_wide_pulldown:{en:"Wide Pull-down",m:"back",sets:[3,3,3],lo:8,hi:10,left:"2",rest:180,start:180,step:"+1 pin",note:"Lats: priority. Chest up, elbows down to your sides, no swinging."},
+  p_wide_pulldown:{en:"Wide Pull-down",m:"back",sets:[3,3,3],lo:8,hi:10,left:"2",rest:180,start:180,step:"+1 pin",note:"Lats: priority. Chest up, elbows down to your sides. Controlled reps: no swinging, do not force the weight."},
   p_korean_press:{en:"Korean Chest Press",m:"chest",sets:[2,2,2],lo:8,hi:10,left:"2",rest:180,start:170,step:"+5 lb",note:"Skip it today if shoulder pain is 4 or more."},
   p_cable_row:{en:"Seated Cable Row",m:"back",sets:[2,2,2],lo:8,hi:10,left:"2",rest:180,start:180,step:"+1 pin",note:""},
-  p_straight_arm:{en:"Straight-arm Cable Pull-down",m:"back",sets:[3,3,3],lo:12,hi:15,left:"1",rest:120,start:null,step:"+1 pin",note:"Lats: priority. Arms almost straight, bar to your thighs, slow on the way up."},
+  p_straight_arm:{en:"Straight-arm Cable Pull-down",m:"back",sets:[3,3,3],lo:12,hi:15,left:"1",rest:120,start:null,step:"+1 pin",note:"Lats: priority. Arms almost straight, bar to your thighs. Controlled reps: slow on the way up, do not force the weight."},
   p_pushdown:{en:"Tricep Push Down",m:"triceps",sets:[2,2,2],lo:8,hi:12,left:"1",rest:90,start:160,step:"+1 pin",note:"Monday load. Saturday has its own card."},
   ex_c1792694982207:{en:"Avenger back thickness",m:"back",sets:[1,1,1],lo:8,hi:10,left:"2",rest:180,start:180,step:"+1 pin",note:""},
   // Tuesday
   p_atlantis_lateral:{en:"Atlantis Side-Delt Raise",m:"shoulders",sets:[4,4,4],lo:10,hi:15,left:"1",rest:90,start:88,step:"+1 pin",note:"Side delts: priority, done first. Light enough to stop at the top of every rep."},
   p_ham_curl_a:{en:"Hamstring Curl",m:"hams",sets:[3,3,3],lo:8,hi:12,left:"1",rest:120,start:159,step:"+1 pin",note:"First leg lift: it warms up the knee."},
-  p_pro_squat:{en:"Pro Squat",m:"quads",sets:[3,3,3],lo:10,hi:15,left:"2",rest:180,start:330,step:"+10–20 lb",note:"Pain-free depth only. Light grip on the handles, wrist straight. Knee pain 4 or more: skip it today."},
-  p_leg_ext:{en:"Leg Extension",m:"quads",sets:[2,2,2],lo:12,hi:15,left:"1",rest:120,start:210,step:"+1 pin",note:"Lower for 2 seconds. Stop if knee pain is 4 or more."},
+  p_pro_squat:{en:"Pro Squat",m:"quads",sets:[3,3,3],lo:10,hi:15,left:"2",rest:180,start:330,step:"+10–20 lb",note:"Pain-free depth only. Light grip on the handles, wrist straight. Any knee pain: go lighter. Still hurts: skip it today."},
+  p_leg_ext:{en:"Leg Extension",m:"quads",sets:[2,2,2],lo:12,hi:15,left:"1",rest:120,start:210,step:"+1 pin",note:"Lower for 2 seconds. Any knee pain: go lighter. Still hurts: skip it today."},
   p_calf_a:{en:"Calf Raise",m:"calves",sets:[3,3,3],lo:8,hi:12,left:"1",rest:90,start:300,step:"+10 lb",note:"Pause 1 second at the bottom."},
   p_abs:{en:"Abs Machine",m:"abs",sets:[2,2,2],lo:10,hi:15,left:"1",rest:90,start:180,step:"+1 pin",note:"Type the machine load, not your body weight. Short on time: cut this first."},
   // Thursday
-  p_rev_pulldown:{en:"Reverse-grip Pull-down",m:"back",sets:[3,3,3],lo:8,hi:12,left:"2",rest:180,start:230,step:"+1 pin",note:"Lats: priority, done first."},
-  p_incline_db:{en:"Incline Dumbbell Press",m:"chest",sets:[3,3,3],lo:8,hi:12,left:"2",rest:180,start:null,step:"the next dumbbells up",note:"Upper chest: priority. Bench at 30°, not 45°. Type both dumbbells added together. Front-delt pain 4 or more: do a low-to-high cable fly instead."},
+  p_rev_pulldown:{en:"Reverse-grip Pull-down",m:"back",sets:[3,3,3],lo:8,hi:12,left:"2",rest:180,start:230,step:"+1 pin",note:"Lats: priority, done first. Controlled reps: do not force the weight."},
+  p_incline_db:{en:"Low-Incline Dumbbell Press",m:"chest",sets:[3,3,3],lo:8,hi:12,left:"2–3",rest:180,start:null,step:"the next dumbbells up",note:"Upper chest: priority. Low bench, about 30°. Type both dumbbells added together. Keep the shoulder comfortable. Pain 4 or more: do a low-to-high cable fly instead."},
   p_cable_lateral:{en:"Leaning Cable Lateral Raise",m:"shoulders",sets:[3,3,3],lo:12,hi:15,left:"1",rest:90,start:null,startTxt:"the pin under 38.5 lb",step:"slower lowering first, then the next pin",note:"Side delts: priority. The cable, not the Atlantis machine."},
   p_power_row:{en:"Super Power Roll",m:"back",sets:[3,3,3],lo:8,hi:12,left:"2",rest:180,start:250,step:"+1 pin",note:""},
-  p_chest_fly:{en:"Chest Fly",m:"chest",sets:[2,2,2],lo:12,hi:15,left:"1",rest:120,start:null,startTxt:"the pin under 90 lb",step:"+1 pin",note:"Stop the stretch before any shoulder pain."},
-  // not in a plan day in this block (the Incline Dumbbell Press took its place); kept so the card still has sane numbers if it is added by hand
-  p_decline_press:{en:"Decline Chest Press",m:"chest",sets:[2,2,2],lo:8,hi:12,left:"2",rest:180,start:210,step:"+5 lb",note:"Not in the weekly plan now. Same machine every time."},
+  p_decline_press:{en:"Decline Chest Press",m:"chest",sets:[2,2,2],lo:8,hi:12,left:"2",rest:180,start:200,step:"+5 lb",note:"Same machine every week. It comes after the incline press, so it can feel heavier."},
+  p_chest_fly:{en:"Chest Fly",m:"chest",sets:[2,2,2],lo:12,hi:15,left:"1",rest:120,start:null,startTxt:"the pin under 90 lb",step:"+1 pin",note:"Stop the stretch before any shoulder pain. Short on time: cut this first."},
   p_reverse_fly:{en:"Reverse Fly",m:"shoulders",sets:[2,2,2],lo:12,hi:15,left:"1",rest:90,start:150,step:"+1 pin",note:"Rear delts."},
   p_cable_curl:{en:"Cable Straight Bar Curl",m:"biceps",sets:[2,2,2],lo:10,hi:12,left:"1",rest:90,start:123,step:"+1 pin",note:"Same station every week."},
   // Friday
   p_ham_curl_b:{en:"Hamstring Curl",m:"hams",sets:[2,2,2],lo:10,hi:15,left:"1",rest:120,start:159,step:"+1 pin",note:"Higher-rep day."},
-  p_hack_squat:{en:"Atlantis Hack Squat",m:"quads",sets:[2,2,2],lo:8,hi:12,left:"2",rest:180,start:630,step:"+10–20 lb",note:"Knee pain 4 or more: use the leg press, or skip it today."},
+  p_hack_squat:{en:"Atlantis Hack Squat",m:"quads",sets:[2,2,2],lo:8,hi:12,left:"2",rest:180,start:630,step:"+10–20 lb",note:"Any knee pain: go lighter or use the leg press. Still hurts: skip it today."},
   p_db_rdl:{en:"Pit Shark Deadlift",m:"hams",sets:[2,2,2],lo:8,hi:12,left:"2",rest:180,start:450,step:"+10–20 lb",note:"Flat back, slow lowering. Use 360 if anything hurts. Stop if your back hurts."},
   p_calf_b:{en:"Calf Raise",m:"calves",sets:[2,2,2],lo:10,hi:15,left:"1",rest:90,start:260,step:"+10 lb",note:"Pause 1 second at the bottom."},
   // Saturday
@@ -761,7 +760,7 @@ function planBrief(wk,dateStr){
   L.push(vi?"Cùng một mức tạ cho mọi set chính. Mỗi buổi cố thêm 1 rep.":"Same weight on every hard set. Try to add 1 rep each session.");
   if(st&&st.w<=2)L.push(vi?"Làm quen: dùng mức tạ ghi sẵn. Nếu set 1 thấp hơn khoảng rep, giảm 5–10 lb ngay.":"Ease-in: use the start loads. If set 1 lands under the rep range, take 5–10 lb off right away.");
  }
- L.push(vi?"Đau 3/10: giữ tạ, không tăng. Đau từ 4: đổi bài.":"Pain 3 out of 10: same load, no progression. Pain 4 or more: swap the exercise.");
+ L.push(vi?"Đau 3/10: giữ tạ, không tăng (bài chân mà đau gối: giảm tạ). Đau từ 4: đổi bài.":"Pain 3 out of 10: same load, no progression (knee on a leg lift: go lighter). Pain 4 or more: swap the exercise.");
  return `<div class="card brief">${L.map(function(x){return "<div>"+esc(x)+"</div>";}).join("")}</div>`;
 }
 function planRange(p){return p.lo===p.hi?String(p.lo):(p.lo+"–"+p.hi);}
@@ -1369,7 +1368,7 @@ function restCard(){
    <h2 style="margin:0 0 8px">${esc(t("rest_day"))}</h2>
    <p class="muted" style="margin:0 0 16px">${esc(t("cardio_note"))}</p>
    <div class="field"><label>${esc(t("cardio_min"))}</label>
-     <input id="cardioMin" inputmode="numeric" class="num" value="${s.cardioMin!=null?s.cardioMin:""}" placeholder="25" data-act="cardioInput"></div>
+     <input id="cardioMin" inputmode="numeric" class="num" value="${s.cardioMin!=null?s.cardioMin:""}" placeholder="40" data-act="cardioInput"></div>
    <p class="muted" style="font-size:.75rem">💧 1 gallon water · 8h sleep · keep cortisol low for natural recovery.</p>
    ${DB.program.plan?`<p class="muted" style="font-size:.75rem;margin-top:10px;color:var(--gold-bright)">${esc(DB.settings.lang==="vi"?"Vẫn tập hôm nay? Chạm một buổi tập ở trên: set sẽ được ghi đúng vào ngày này.":"Training today anyway? Tap a workout above: the sets are saved under this day.")}</p>`:""}
  </div>`;
@@ -1516,7 +1515,7 @@ function restCardioCard(){
    <h2 style="margin:0 0 8px">${esc(t("rest_cardio_title"))}</h2>
    <p class="muted" style="margin:0 0 16px">${esc(t("cardio_note"))}</p>
    <div class="field"><label>${esc(t("cardio_min"))}</label>
-     <input id="cardioMin" inputmode="numeric" class="num" value="${s.cardioMin!=null?s.cardioMin:""}" placeholder="25" data-act="cardioInput"></div>
+     <input id="cardioMin" inputmode="numeric" class="num" value="${s.cardioMin!=null?s.cardioMin:""}" placeholder="40" data-act="cardioInput"></div>
    <p class="muted" style="font-size:.75rem">💧 1 gallon water · keep cortisol low for natural recovery.</p>
  </div>`;
 }
@@ -2248,7 +2247,7 @@ function sessionCard(s,hit){
    p = measurable pass, e = evidence to record, m = what to do if missed. Ticks are saved in DB.ms and travel with the backup.
    A "rep" group repeats every week (Mon–Sun) and keeps one set of ticks per week. */
 const MILESTONES={
- focus:{to:"2026-11-29",text:"Send the coach your update. This week: no lift above pain 3."},
+ focus:{to:"2026-11-29",text:"Book the health check. This week: no lift above pain 3."},
  groups:[
   {k:"w1",t:"This week · Nov 22–29",items:[
    {id:"w1-coach",d:"2026-11-22",a:"Send the coach your weekly update",p:"Sent with weight, waist, macros, pain scores and your calorie question",e:"The coach's reply",m:"Send it Monday morning"},
@@ -2256,11 +2255,12 @@ const MILESTONES={
    {id:"w1-clinic",d:"2026-11-25",a:"Book one health check",p:"Appointment made, to be seen by Fri Dec 4",e:"Appointment date",m:"Call on Mon Nov 30"},
    {id:"w1-posing",d:"2026-11-27",a:"Posing: 4 short sessions",p:"10 min each: quarter turns and the 5 Classic poses, 2 holds of 10 s",e:"P y in the day note",m:"Add one on Wednesday or Saturday"},
    {id:"w1-easy",d:"2026-11-28",a:"Easy week: 5 sessions",p:"Half the sets, about 10% lighter, 3–4 reps left, no lift above pain 3",e:"Workout log",m:"Move it to Wednesday or Saturday morning. Never two sessions in one day."},
-   {id:"w1-find",d:"2026-11-28",a:"Find the weight for the 2 new lifts",p:"Straight-arm Cable Pull-down and Incline Dumbbell Press each logged once",e:"Workout log",m:"Find them on Nov 30 and Dec 3"},
+   {id:"w1-find",d:"2026-11-28",a:"Find the weight for the 2 new lifts",p:"Straight-arm Cable Pull-down and Low-Incline Dumbbell Press each logged once",e:"Workout log",m:"Find them on Nov 30 and Dec 3"},
    {id:"w1-test",d:"2026-11-28",a:"Test 1: standard video and tape",p:"Phone at navel height, 10 ft away, feet in frame, before training. 4 quarter turns and 5 poses held 10 s. 9 tape numbers.",e:"Video file + day note",m:"Do it Sunday morning"},
-   {id:"w1-walk",d:"2026-11-29",a:"Walk about 45 min a day",p:"6 of 7 days between 30 and 45 min",e:"One number in the Sunday check-in",m:"Over 45: stop at 45 the next day"},
+   {id:"w1-walk",d:"2026-11-29",a:"Walk about 40 min a day, if comfortable",p:"6 of 7 days: about 40 min, or less if it is not comfortable",e:"One number in the Sunday check-in",m:"Over 40: stop at 40 the next day"},
+   {id:"w1-food",d:"2026-11-29",a:"Eat the coach's macros for 7 days",p:"6 of 7 days on target in the food log, with fat spread across meals",e:"Food records",m:"Log every meal and fix it the next day"},
    {id:"w1-daily",d:"2026-11-29",a:"Day line and food log",p:"6 of 7 days: the W / S / E / P line typed and the day's food logged",e:"Day notes + food records",m:"Fill yesterday from memory"},
-   {id:"w1-checkin",d:"2026-11-29",a:"Sunday check-in",p:"Backup, scale export, food records and the 6 lines sent",e:"Your message",m:"Send it Monday"}
+   {id:"w1-checkin",d:"2026-11-29",a:"Sunday check-in",p:"Weekly weight average, waist, training energy and the 6 lines sent, with backup, scale export and food records",e:"Your message",m:"Send it Monday"}
   ]},
   {k:"wk",t:"Every week · Nov 30 – Feb 14",rep:true,from:"2026-11-30",to:"2027-02-14",items:[
    {id:"wk-sessions",d:"Mon–Sat",a:"5 sessions, priority sets first",p:"5 of 5 (3 of 3 from Dec 19 to Jan 3). Side delts, lats and upper chest before the rest.",e:"Workout log",m:"Move a missed day to Wednesday"},
@@ -2271,7 +2271,7 @@ const MILESTONES={
   ]},
   {k:"d30",t:"30 days · Dec 21 (record by Dec 18)",items:[
    {id:"d30-scan1",d:"2026-11-30",a:"Month-end scan",p:"Lean 138.4 lb or more and body fat 13.7% or less",e:"Scale app",m:"No change. Scan again in 2 weeks and check lifts."},
-   {id:"d30-health",d:"2026-12-04",a:"Health check",p:"7 days in a row with no symptoms, or the clinic visit is done",e:"Day notes or visit date",m:"Call the clinic that day"},
+   {id:"d30-health",d:"2026-12-04",a:"Health check",p:"The clinic visit is done",e:"Visit date",m:"Call the clinic that day"},
    {id:"d30-weight",d:"2026-12-18",a:"Body weight and waist",p:"7-day average Dec 12–18 between 159.0 and 161.0 lb. Waist 31.25 in or less.",e:"Scale export + day notes",m:"Under 159.0: ask the coach for +30 g carbs. Over 161.0 for 2 weeks in a row: ask for −20 g."},
    {id:"d30-sessions",d:"2026-12-18",a:"Train the plan",p:"18 or more of 20 sessions from Nov 23 to Dec 18. Do Shoulders + Arms on Wed Dec 16.",e:"Backup",m:"Move a missed day to Wednesday or Sunday"},
    {id:"d30-range",d:"2026-12-18",a:"Sets inside the rep range",p:"70% or more in the weeks of Dec 7 and Dec 14 (baseline 41%)",e:"Backup",m:"Start weights go down"},
